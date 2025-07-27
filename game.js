@@ -338,14 +338,18 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
         ensureMinHandCards(p);
     }
 
+    // Aquí es crucial: handleSpecialCards activa twoEffectActive
     await handleSpecialCards(actualCardToPlay);
 
     renderCards(); // Volver a renderizar las cartas y actualizar el estado de los botones
     checkWinCondition();
 
+    // SOLO cambiar de turno si el efecto de '2' o '7' NO está activo
     if (!twoEffectActive) {
         switchTurn();
     }
+    // Si twoEffectActive es true, el turno NO cambia, y el jugador actual (Player 1 o IA)
+    // debe tener la oportunidad de jugar otra carta.
 }
 
 // Diálogo para que el jugador elija el valor del Joker
@@ -398,7 +402,20 @@ function getValueNumber(value) {
 
 // 8. Manejar efectos de cartas especiales (10, 2, 7, Trío)
 async function handleSpecialCards(playedCard) {
-    // Resetear el efecto del 2 (o 7) si la carta actual no es un 2.
+    // Primero, verificar si la carta jugada es un 2 o un 7
+    if (playedCard.value === '2') {
+        showMessage("¡Has jugado un 2! Tira otra carta.");
+        twoEffectActive = true; // Activa la bandera para permitir otro turno
+        return; // Salir, ya que el jugador lanzará otra carta
+    }
+    
+    if (playedCard.value === '7') {
+        showMessage("¡Has jugado un 7! ¡El sentido del juego se ha revertido! Te toca de nuevo.");
+        twoEffectActive = true;
+        return;
+    }
+
+    // Si no es un 2 ni un 7, y el efecto estaba activo, resetearlo
     if (twoEffectActive && playedCard.value !== '2' && playedCard.value !== '7') {
         twoEffectActive = false;
     }
@@ -412,21 +429,6 @@ async function handleSpecialCards(playedCard) {
         return; // Salir para no procesar otras reglas en este mismo ciclo
     }
 
-    // --- Efecto del 2 ---
-    if (playedCard.value === '2') {
-        showMessage("¡Has jugado un 2! Tira otra carta.");
-        twoEffectActive = true; // Activa la bandera para permitir otro turno
-        return; // Salir, ya que el jugador lanzará otra carta
-    }
-
-    // --- EFECTO DEL 7 (Revertir Sentido) ---
-    if (playedCard.value === '7') {
-        showMessage("¡Has jugado un 7! ¡El sentido del juego se ha revertido! Te toca de nuevo.");
-        twoEffectActive = true;
-        return;
-    }
-    // --------------------------------------------------------
-
     // --- Efecto de Trío ---
     if (discardPile.length >= 3) {
         const lastThreeCards = discardPile.slice(-3);
@@ -436,15 +438,16 @@ async function handleSpecialCards(playedCard) {
         if (nonJokerCards.length > 0) {
             potentialTrioValue = nonJokerCards[0].value;
         } else if (lastThreeCards.length === 3 && lastThreeCards.every(c => c.type === 'joker' || c.type === 'joker-chosen')) {
+            // Si todas son jokers, el jugador actual (o IA) elige el valor del trío
             if (currentPlayer === 'player1') {
                 const chosenValue = await askForJokerValue();
                 if (chosenValue) {
                     potentialTrioValue = chosenValue;
                 } else {
-                    return;
+                    return; // Si el jugador cancela el joker, no hay trío.
                 }
             } else {
-                potentialTrioValue = values[Math.floor(Math.random() * values.length)];
+                potentialTrioValue = values[Math.floor(Math.random() * values.length)]; // IA elige al azar
             }
         }
 
@@ -477,25 +480,40 @@ async function handleSpecialCards(playedCard) {
 
 // 9. Cambiar de Turno
 function switchTurn() {
+    // Si el efecto del 2 o 7 está activo, NO CAMBIA el turno.
+    if (twoEffectActive) {
+        // En este caso, el turno sigue siendo del mismo jugador.
+        // Si era la IA la que jugó el 2/7, la llamamos de nuevo.
+        if (currentPlayer === 'player2') {
+            mainActionButton.disabled = true; // Asegurarse de que el botón de toma esté deshabilitado para el jugador mientras la IA piensa
+            setTimeout(aiPlay, 1500);
+        } else {
+            // Si es el Jugador 1, su turno continúa. El botón principal (Tomar Montón)
+            // ya está habilitado para él. Solo renderizamos de nuevo para asegurar
+            // que los listeners de sus cartas estén activos si es necesario.
+            renderCards();
+        }
+        return; // Salir de la función, ya que no hay cambio de turno.
+    }
+
+    // Si no hay efecto activo, entonces se procede a cambiar el turno normalmente
     if (gameState !== 'playing') return;
 
-    if (!twoEffectActive) {
-        players[currentPlayer].isTurn = false;
-        currentPlayer = (currentPlayer === 'player1') ? 'player2' : 'player1';
-        players[currentPlayer].isTurn = true;
-        showMessage(`Es el turno de ${currentPlayer === 'player1' ? 'Jugador 1' : 'Jugador 2'}.`);
+    players[currentPlayer].isTurn = false;
+    currentPlayer = (currentPlayer === 'player1') ? 'player2' : 'player1';
+    players[currentPlayer].isTurn = true;
+    showMessage(`Es el turno de ${currentPlayer === 'player1' ? 'Jugador 1' : 'Jugador 2'}.`);
 
-        renderCards(); // Volver a renderizar para actualizar el estado del botón principal para el siguiente turno
+    renderCards(); // Volver a renderizar para actualizar el estado del botón principal para el siguiente turno
 
-        // Si es el turno de la IA (player2), debería hacer un movimiento
-        if (currentPlayer === 'player2') {
-            // Deshabilitar el botón de "Tomar Montón" mientras juega la IA
-            mainActionButton.disabled = true;
-            setTimeout(aiPlay, 1500); // Dar un pequeño retraso para la IA
-        } else {
-            // Habilitar el botón de "Tomar Montón" para el Jugador 1
-            mainActionButton.disabled = false;
-        }
+    // Si es el turno de la IA (player2), debería hacer un movimiento
+    if (currentPlayer === 'player2') {
+        // Deshabilitar el botón de "Tomar Montón" mientras juega la IA
+        mainActionButton.disabled = true;
+        setTimeout(aiPlay, 1500); // Dar un pequeño retraso para la IA
+    } else {
+        // Habilitar el botón de "Tomar Montón" para el Jugador 1
+        mainActionButton.disabled = false;
     }
     updateButtonStates(); // Asegurarse de que los estados de los botones se actualicen
 }
@@ -511,8 +529,42 @@ async function aiPlay() {
     let fromArea = '';
 
     const findBestPlay = (cards) => {
-        const sortedCards = [...cards].sort((a, b) => getValueNumber(a.value) - getValueNumber(b.value));
-        for (let card of sortedCards) {
+        // Prioridad de la IA: jugar 2s o 7s si puede, luego 10s para quemar, luego cartas normales válidas.
+        const specialCards = cards.filter(c => c.value === '2' || c.value === '7' || c.value === '10' || c.type === 'joker');
+        const normalCards = cards.filter(c => c.value !== '2' && c.value !== '7' && c.value !== '10' && c.type !== 'joker');
+
+        // Intentar jugar un 2 o 7 primero
+        for (let card of specialCards) {
+            if (card.value === '2' || card.value === '7') {
+                // Los 2 y 7 siempre son válidos
+                return card;
+            }
+        }
+        // Intentar jugar un 10
+        for (let card of specialCards) {
+            if (card.value === '10') {
+                return card;
+            }
+        }
+        // Intentar jugar un Joker
+        for (let card of specialCards) {
+            if (card.type === 'joker') {
+                 // Si es Joker, la IA lo usará para hacer una jugada válida si no tiene otra opción mejor.
+                 // Para simplificar, la IA elegirá el valor más bajo que le permita jugar.
+                 // Si no hay topCard, elige un 2 para mantener el turno si es posible.
+                if (!topCard) return {...card, value: '2', type: 'joker-chosen'}; // Si no hay nada, el 2 es una buena opción
+                for (let val of values) {
+                    if (getValueNumber(val) >= getValueNumber(topCard.value)) {
+                        return {...card, value: val, type: 'joker-chosen'};
+                    }
+                }
+                return {...card, value: 'A', type: 'joker-chosen'}; // Si no encuentra una jugada mayor, que sea un As
+            }
+        }
+
+        // Si no hay cartas especiales que se puedan jugar con ventaja, intenta jugar cartas normales
+        const sortedNormalCards = [...normalCards].sort((a, b) => getValueNumber(a.value) - getValueNumber(b.value));
+        for (let card of sortedNormalCards) {
             if (isValidPlay(card, topCard)) {
                 return card;
             }
@@ -535,24 +587,25 @@ async function aiPlay() {
     }
     if (!cardToPlay && aiPlayer.hand.length === 0 && aiPlayer.faceUp.length === 0 && deck.length === 0 && aiPlayer.faceDown.length > 0) {
         // La IA debe intentar jugar una de sus cartas boca abajo al azar.
-        // Necesitamos seleccionar una carta al azar para intentar jugar.
         const randomIndex = Math.floor(Math.random() * aiPlayer.faceDown.length);
         const revealedCard = aiPlayer.faceDown[randomIndex]; // Revelar una al azar
         showMessage(`El Jugador 2 ha revelado una carta boca abajo.`);
 
+        // Si la carta revelada es válida, la juega
         if (isValidPlay(revealedCard, topCard)) {
             cardToPlay = aiPlayer.faceDown.splice(randomIndex, 1)[0]; // Remover la carta jugada
             fromArea = 'faceDown';
         } else {
+            // Si la carta revelada NO es válida, la IA toma el montón
             showMessage(`El Jugador 2 no pudo jugar su carta boca abajo y toma el montón.`);
             // La carta revelada pero no jugada va al montón de descarte
             discardPile.push(aiPlayer.faceDown.splice(randomIndex, 1)[0]); 
             takePile(aiPlayer);
             renderCards();
             checkWinCondition();
-            if (!twoEffectActive) {
-                switchTurn();
-            }
+            // Si la IA toma, su turno termina (el efecto del 2/7 no se aplica si tomó)
+            twoEffectActive = false; // Asegurar que se resetee
+            switchTurn();
             return;
         }
     }
@@ -584,14 +637,19 @@ async function aiPlay() {
     renderCards();
     checkWinCondition();
 
-    if (!twoEffectActive) {
+    // Después de que la IA juega, verificamos si su efecto especial ('2' o '7') sigue activo.
+    // Si lo está, la IA juega de nuevo. De lo contrario, cambiamos de turno.
+    if (twoEffectActive && currentPlayer === 'player2') {
+        // Si el efecto del 2/7 está activo y sigue siendo el turno de la IA, la IA juega de nuevo.
+        setTimeout(aiPlay, 1500);
+    } else {
+        // Si no hay efecto activo o el efecto ya terminó, cambiar de turno.
         switchTurn();
     }
 }
 
 
 // 11. Función para el botón principal (Confirmar Mano / Tomar Montón)
-// Aquí se añaden los listeners, si mainActionButton fuera null, daría el error.
 if (mainActionButton) { // Verificar si el elemento existe antes de añadir el listener
     mainActionButton.addEventListener('click', () => {
         if (gameState === 'setup') {
@@ -602,6 +660,7 @@ if (mainActionButton) { // Verificar si el elemento existe antes de añadir el l
                 return;
             }
             showMessage("Has decidido tomar el montón de descarte.");
+            twoEffectActive = false; // Si tomas el montón, cualquier efecto de '2' o '7' se anula.
             takePile(players.player1);
         }
     });
@@ -611,7 +670,6 @@ if (mainActionButton) { // Verificar si el elemento existe antes de añadir el l
 
 
 // --- NUEVO BOTÓN: Reiniciar Juego ---
-// Aquí se añaden los listeners, si restartButton fuera null, daría el error.
 if (restartButton) { // Verificar si el elemento existe antes de añadir el listener
     restartButton.addEventListener('click', () => {
         initGame(); // Llama a la función de inicialización para reiniciar todo
@@ -629,8 +687,8 @@ function takePile(player) {
     showMessage(`${player === players.player1 ? 'Has' : 'El Jugador 2 ha'} tomado el montón.`);
     shuffleDeck(player.hand);
     renderCards();
-    twoEffectActive = false;
-    switchTurn();
+    twoEffectActive = false; // Importante: tomar el montón siempre resetea el efecto
+    switchTurn(); // El que toma el montón siempre pierde el turno
 }
 
 // 13. Chequear Condición de Victoria
@@ -679,8 +737,10 @@ function updateButtonStates() {
     } else if (gameState === 'playing') {
         if (mainActionButton) { // Verificar antes de usar
             mainActionButton.textContent = "Tomar Montón";
-            // Deshabilitar si es el turno de la IA
-            mainActionButton.disabled = (currentPlayer === 'player2');
+            // Deshabilitar si es el turno de la IA y no está en un turno extra por un 2/7.
+            // Si twoEffectActive es true y es turno de la IA, ella debe tomar la siguiente acción,
+            // no el jugador.
+            mainActionButton.disabled = (currentPlayer === 'player2' || twoEffectActive);
         }
         if (restartButton) { // Verificar antes de usar
             restartButton.style.display = 'none'; // Ocultar Reiniciar
