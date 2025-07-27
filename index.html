@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etíope</title> <style>
+        /* Estilos CSS básicos para que el juego se vea un poco mejor */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            border: 2px solid #333;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+        .player-area, .game-area {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+        }
+        .player-area h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 80px; /* Para que las áreas no colapsen */
+            border: 1px solid #eee;
+            padding: 5px;
+            border-radius: 3px;
+            background-color: #f9f9f9;
+        }
+        .card {
+            width: 50px;
+            height: 70px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            background-color: #fff;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+        }
+        .card:hover:not(.hidden):not(.disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .card.red {
+            color: red;
+        }
+        .card.hidden {
+            background-color: #666;
+            color: #666; /* Oculta el texto */
+            border-color: #444;
+            cursor: default;
+        }
+        .card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none; /* Deshabilita clics */
+        }
+        #discard-pile .card {
+            background-color: #e0e0e0;
+        }
+        #game-controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #game-messages {
+            margin-top: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            min-height: 30px; /* Para mantener el espacio */
+        }
+    </style>
+</head>
+<body>
+    <h1>Etíope</h1> <div class="game-container">
+        <div class="player-area">
+            <h3>Jugador 2 (IA)</h3>
+            <p>Mano:</p>
+            <div id="player2-hand" class="card-container"></div>
+            <p>Cartas boca arriba:</p>
+            <div id="player2-face-up" class="card-container"></div>
+            <p>Cartas boca abajo:</p>
+            <div id="player2-face-down" class="card-container"></div>
+        </div>
+
+        <div class="game-area">
+            <h3>Montón de Descarte</h3>
+            <div id="discard-pile" class="card-container"></div>
+            <div id="game-messages"></div>
+        </div>
+
+        <div class="player-area">
+            <h3>Jugador 1 (Tú)</h3>
+            <p>Mano:</p>
+            <div id="player1-hand" class="card-container"></div>
+            <p>Cartas boca arriba:</p>
+            <div id="player1-face-up" class="card-container"></div>
+            <p>Cartas boca abajo:</p>
+            <div id="player1-face-down" class="card-container"></div>
+        </div>
+
+        <div id="game-controls">
+            <button id="draw-button">Tomar Montón</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
