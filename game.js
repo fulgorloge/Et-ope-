@@ -79,9 +79,9 @@ function dealInitialCards() {
     players.player2.faceDown = [];
     discardPile = [];
 
-    // 3 cartas en mano, 3 boca arriba, 3 boca abajo
+    // Repartir 3 cartas en mano, 3 boca arriba, 3 boca abajo
     for (let playerKey in players) {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 3; i++) { // Bucle para 3 cartas en cada área
             players[playerKey].hand.push(deck.pop());
             players[playerKey].faceUp.push(deck.pop());
             players[playerKey].faceDown.push(deck.pop());
@@ -104,12 +104,12 @@ function renderCards() {
     players.player1.hand.forEach(card => player1HandEl.appendChild(createCardElement(card, 'player1', 'hand')));
     players.player1.faceUp.forEach(card => player1FaceUpEl.appendChild(createCardElement(card, 'player1', 'faceUp')));
     // Cartas boca abajo se muestran ocultas para el Jugador 1
-    players.player1.faceDown.forEach(() => player1FaceDownEl.appendChild(createCardElement({ value: '?', suit: '?', type: 'hidden' }, 'player1', 'faceDown')));
+    players.player1.faceDown.forEach(card => player1FaceDownEl.appendChild(createCardElement(card, 'player1', 'faceDown', true))); // Pasar true para ocultar
 
     // Renderizar cartas del Jugador 2 (IA) - mano y boca abajo ocultas
-    players.player2.hand.forEach(() => player2HandEl.appendChild(createCardElement({ value: '?', suit: '?', type: 'hidden' }, 'player2', 'hand')));
+    players.player2.hand.forEach(card => player2HandEl.appendChild(createCardElement(card, 'player2', 'hand', true))); // Pasar true para ocultar
     players.player2.faceUp.forEach(card => player2FaceUpEl.appendChild(createCardElement(card, 'player2', 'faceUp')));
-    players.player2.faceDown.forEach(() => player2FaceDownEl.appendChild(createCardElement({ value: '?', suit: '?', type: 'hidden' }, 'player2', 'faceDown')));
+    players.player2.faceDown.forEach(card => player2FaceDownEl.appendChild(createCardElement(card, 'player2', 'faceDown', true))); // Pasar true para ocultar
 
     // Renderizar solo la última carta del montón de descarte
     if (discardPile.length > 0) {
@@ -119,16 +119,21 @@ function renderCards() {
 }
 
 // 5. Crear elemento HTML de una carta (con gestión de clics)
-function createCardElement(card, owner, area) {
+// Añadimos un parámetro 'isHidden' para controlar si la carta se muestra boca arriba o boca abajo
+function createCardElement(card, owner, area, isHidden = false) {
     const cardEl = document.createElement('div');
     cardEl.classList.add('card');
-    cardEl.textContent = card.value;
 
-    if (card.type === 'hidden') {
-        cardEl.classList.add('hidden'); // Para cartas boca abajo o mano del oponente
-    } else if (card.suit === 'Hearts' || card.suit === 'Diamonds') {
-        cardEl.classList.add('red');
+    if (isHidden) {
+        cardEl.classList.add('hidden');
+        cardEl.textContent = ''; // No mostrar valor si está oculta
+    } else {
+        cardEl.textContent = card.value;
+        if (card.suit === 'Hearts' || card.suit === 'Diamonds') {
+            cardEl.classList.add('red');
+        }
     }
+    
     // Añadir data-attributes para identificar la carta al hacer clic
     cardEl.dataset.value = card.value;
     cardEl.dataset.suit = card.suit;
@@ -258,7 +263,7 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
         showMessage("Debes jugar las cartas de tu mano primero, o no tienes cartas boca arriba.");
         return;
     }
-    if (fromArea === 'faceDown' && (p.hand.length > 0 || p.faceUp.length > 0 || deck.length > 0 || p.faceDown.length === 0)) {
+    if (fromArea === 'faceDown' && (p.hand.length > 0 || p.faceUp.length > 0 || deck.length === 0 || p.faceDown.length === 0)) {
         showMessage("Solo puedes jugar cartas boca abajo si tu mano y tus cartas boca arriba están vacías, y el mazo está agotado.");
         return;
     }
@@ -268,7 +273,16 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
     let playedSuccessfully = false;
 
     if (fromArea === 'faceDown') {
-        actualCardToPlay = p.faceDown.shift();
+        // Al jugar una carta boca abajo, se revela
+        // La carta que se juega es la que se clickeó, debemos encontrarla en el array
+        cardIndex = p.faceDown.findIndex(c => c.value === cardToPlay.value && c.suit === cardToPlay.suit);
+        if (cardIndex === -1) {
+             showMessage("Error: Carta boca abajo no encontrada para jugar.");
+             return;
+        }
+        actualCardToPlay = p.faceDown.splice(cardIndex, 1)[0]; // Remover y obtener la carta
+
+        // Actualizar visualmente la carta para que muestre su valor
         if (clickedElement) {
             clickedElement.textContent = actualCardToPlay.value;
             clickedElement.classList.remove('hidden');
@@ -281,6 +295,7 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
         const topCard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
         if (!isValidPlay(actualCardToPlay, topCard)) {
             showMessage(`El ${actualCardToPlay.value} no se puede jugar. ¡Debes tomar el montón!`);
+            discardPile.push(actualCardToPlay); // La carta revelada pero no jugada va al montón
             takePile(p);
             return;
         } else {
@@ -519,14 +534,19 @@ async function aiPlay() {
         }
     }
     if (!cardToPlay && aiPlayer.hand.length === 0 && aiPlayer.faceUp.length === 0 && deck.length === 0 && aiPlayer.faceDown.length > 0) {
-        const revealedCard = aiPlayer.faceDown[0];
+        // La IA debe intentar jugar una de sus cartas boca abajo al azar.
+        // Necesitamos seleccionar una carta al azar para intentar jugar.
+        const randomIndex = Math.floor(Math.random() * aiPlayer.faceDown.length);
+        const revealedCard = aiPlayer.faceDown[randomIndex]; // Revelar una al azar
         showMessage(`El Jugador 2 ha revelado una carta boca abajo.`);
 
         if (isValidPlay(revealedCard, topCard)) {
-            cardToPlay = aiPlayer.faceDown.shift();
+            cardToPlay = aiPlayer.faceDown.splice(randomIndex, 1)[0]; // Remover la carta jugada
             fromArea = 'faceDown';
         } else {
             showMessage(`El Jugador 2 no pudo jugar su carta boca abajo y toma el montón.`);
+            // La carta revelada pero no jugada va al montón de descarte
+            discardPile.push(aiPlayer.faceDown.splice(randomIndex, 1)[0]); 
             takePile(aiPlayer);
             renderCards();
             checkWinCondition();
@@ -542,9 +562,11 @@ async function aiPlay() {
         if (fromArea === 'hand') sourceArray = aiPlayer.hand;
         else if (fromArea === 'faceUp') sourceArray = aiPlayer.faceUp;
 
-        if (fromArea !== 'faceDown') {
+        if (fromArea !== 'faceDown') { // Si no es faceDown, la carta ya fue spliceada arriba
             const index = sourceArray.findIndex(c => c.value === cardToPlay.value && c.suit === cardToPlay.suit);
-            sourceArray.splice(index, 1);
+            if (index !== -1) { // Asegurarse de que la carta aún esté en el array si se encuentra.
+                sourceArray.splice(index, 1);
+            }
         }
         
         discardPile.push(cardToPlay);
