@@ -3,137 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Etíope</title> <style>
-        /* Estilos CSS básicos para que el juego se vea un poco mejor */
+    <title>Etíope</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+    <style>
+        /* Variables CSS para una paleta de colores coherente */
+        :root {
+            --bg-color-dark: #2c3e50; /* Azul oscuro pizarra */
+            --table-color-dark: #34495e; /* Azul oscuro grisáceo */
+            --table-color-medium: #456284; /* Azul medio para secciones */
+            --accent-color-light: #ecf0f1; /* Gris claro para texto/fondos */
+            --accent-color-primary: #3498db; /* Azul vibrante */
+            --accent-color-secondary: #e74c3c; /* Rojo para acentos/errores */
+            --card-bg-light: #ffffff; /* Fondo de carta blanco */
+            --card-text-dark: #2c3e50; /* Texto de carta oscuro */
+            --card-red-text: #e74c3c; /* Texto rojo de carta */
+            --border-color-subtle: rgba(255, 255, 255, 0.1);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-medium: rgba(0, 0, 0, 0.4);
+            --shadow-strong: rgba(0, 0, 0, 0.6);
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 20px;
-            background-color: #f0f0f0;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color-dark); /* Fondo oscuro general */
+            color: var(--accent-color-light); /* Texto claro por defecto */
+            overflow-x: hidden; /* Evitar scroll horizontal en móviles */
         }
+
+        h1 {
+            font-family: 'Permanent Marker', cursive; /* Fuente más juguetona para el título */
+            font-size: 3.5em;
+            color: var(--accent-color-primary);
+            text-shadow: 2px 2px 4px var(--shadow-medium);
+            margin-bottom: 25px;
+        }
+
         .game-container {
-            border: 2px solid #333;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 800px;
+            display: grid;
+            grid-template-areas:
+                "player2-area"
+                "game-area"
+                "player1-area";
+            grid-template-rows: auto 1fr auto;
+            gap: 25px; /* Espacio entre las áreas */
+            border: 2px solid var(--border-color-subtle);
+            padding: 30px;
+            background-color: var(--table-color-dark); /* Fondo de la mesa de juego */
+            border-radius: 18px; /* Bordes más redondeados */
+            box-shadow: 0 10px 30px var(--shadow-strong); /* Sombra más pronunciada */
+            width: 95%;
+            max-width: 960px; /* Ancho máximo ligeramente mayor */
+            box-sizing: border-box;
         }
-        .player-area, .game-area {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px dashed #ccc;
-            border-radius: 5px;
+
+        .player-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 1px dashed var(--border-color-subtle);
+            border-radius: 12px;
+            background-color: var(--table-color-medium); /* Fondo ligeramente diferente */
+            box-shadow: inset 0 0 10px var(--shadow-light); /* Sombra interna sutil */
         }
         .player-area h3 {
             margin-top: 0;
-            color: #555;
+            margin-bottom: 15px;
+            color: var(--accent-color-light);
+            font-weight: 700;
+            font-size: 1.5em;
         }
+
+        .player-cards-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Más espacio entre las secciones de cartas */
+            width: 100%;
+        }
+
+        .card-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+            min-width: 100px; /* Ajuste para evitar desbordamientos */
+        }
+        .card-section p {
+            margin-bottom: 8px;
+            font-size: 1em;
+            color: var(--accent-color-light);
+            font-weight: 700;
+            text-transform: uppercase; /* Texto en mayúsculas */
+            letter-spacing: 0.5px;
+        }
+
         .card-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            min-height: 80px; /* Para que las áreas no colapsen */
-            border: 1px solid #eee;
-            padding: 5px;
-            border-radius: 3px;
-            background-color: #f9f9f9;
+            gap: 8px; /* Más espacio entre cartas individuales */
+            min-height: 90px;
+            border: 1px solid var(--border-color-subtle);
+            padding: 8px;
+            border-radius: 6px;
+            background-color: rgba(0, 0, 0, 0.2); /* Fondo sutilmente oscuro para las áreas de cartas */
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 5px var(--shadow-light);
         }
+        
+        /* Estilos específicos para las pilas de cartas boca arriba/abajo */
+        /* Si quieres que solo se vea 1 carta en la pila, quita min-width/max-width y deja solo flex-direction:column; */
+        /* Si quieres apilamiento visual de varias cartas, necesitarías un JS más complejo para posicionarlas */
+        #player1-face-up, #player1-face-down,
+        #player2-face-up, #player2-face-down {
+            min-width: 80px; /* Tamaño de pila para mostrar varias cartas una al lado de otra si es necesario, o una centrada */
+            max-width: 80px;
+            height: 90px; /* Altura para el contenedor de pila */
+            overflow: hidden; /* Oculta si hay demasiadas cartas */
+            justify-content: flex-start; /* Alinea las cartas al inicio de la pila */
+            align-items: center; /* Centra las cartas horizontalmente */
+            flex-direction: column; /* Apila las cartas si hay varias en la misma "pila" */
+        }
+        /* Para mostrar solo la carta superior de la pila (más común en estos juegos) */
+        #player1-face-up .card:not(:first-child), #player1-face-down .card:not(:first-child),
+        #player2-face-up .card:not(:first-child), #player2-face-down .card:not(:first-child) {
+            display: none; /* Oculta todas menos la primera carta en estas pilas */
+        }
+
+
+        .game-area {
+            grid-area: game-area;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 25px;
+            background-color: var(--table-color-medium);
+            border-radius: 12px;
+            box-shadow: inset 0 0 10px var(--shadow-light);
+            min-height: 180px;
+        }
+        #discard-pile {
+            min-width: 100px; /* Tamaño del montón de descarte */
+            min-height: 140px;
+            background-color: rgba(0, 0, 0, 0.3); /* Fondo más oscuro para el montón */
+            border: 2px dashed var(--accent-color-primary); /* Borde distintivo */
+            box-shadow: 0 0 15px var(--shadow-medium);
+        }
+        #game-messages {
+            margin-top: 20px;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--accent-color-primary); /* Mensajes con color principal */
+            text-align: center;
+            min-height: 40px; /* Más espacio para mensajes */
+            text-shadow: 1px 1px 2px var(--shadow-medium);
+        }
+
+        /* Estilos de las cartas individuales */
         .card {
-            width: 50px;
-            height: 70px;
-            border: 1px solid #333;
-            border-radius: 5px;
+            width: 60px; /* Cartas ligeramente más grandes */
+            height: 90px;
+            border: 2px solid var(--card-text-dark); /* Borde más definido */
+            border-radius: 8px; /* Bordes más redondeados */
             display: flex;
             justify-content: center;
             align-items: center;
-            font-weight: bold;
-            font-size: 1.2em;
-            background-color: #fff;
+            font-weight: 700;
+            font-size: 1.5em; /* Tamaño de fuente de carta */
+            background-color: var(--card-bg-light);
+            color: var(--card-text-dark);
             cursor: pointer;
-            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s;
+            user-select: none;
+            box-shadow: 2px 2px 8px var(--shadow-light); /* Sombra para dar profundidad */
         }
-        .card:hover:not(.hidden):not(.disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        .card:hover:not(.hidden):not(.disabled):not(.selected-for-swap) {
+            transform: translateY(-5px) scale(1.08); /* Más efecto al pasar el ratón */
+            box-shadow: 0 8px 20px var(--shadow-medium);
+            border-color: var(--accent-color-primary); /* Borde de color al hacer hover */
         }
         .card.red {
-            color: red;
+            color: var(--card-red-text); /* Color rojo definido */
         }
         .card.hidden {
-            background-color: #666;
-            color: #666; /* Oculta el texto */
-            border-color: #444;
+            background-color: var(--table-color-dark); /* Fondo oscuro para cartas ocultas */
+            color: var(--table-color-dark);
+            border-color: var(--border-color-subtle);
             cursor: default;
+            box-shadow: inset 0 0 10px var(--shadow-light); /* Sombra interna para ocultas */
         }
         .card.disabled {
-            opacity: 0.6;
+            opacity: 0.4;
             cursor: not-allowed;
-            pointer-events: none; /* Deshabilita clics */
+            pointer-events: none;
+            box-shadow: none; /* Eliminar sombra cuando deshabilitado */
         }
-        #discard-pile .card {
-            background-color: #e0e0e0;
+        .card.selected-for-swap {
+            border: 3px solid var(--accent-color-primary); /* Borde más grueso para selección */
+            box-shadow: 0 0 15px var(--accent-color-primary), 0 0 25px var(--accent-color-primary); /* Brillo más fuerte */
+            transform: scale(1.15); /* Más grande cuando seleccionado */
+            z-index: 10; /* Asegurarse de que esté encima de otras cartas */
         }
+
+        /* Controles y botones */
         #game-controls {
-            margin-top: 20px;
+            margin-top: 30px;
             text-align: center;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap; /* Permitir que los botones se envuelvan */
         }
         button {
-            padding: 10px 20px;
-            font-size: 1em;
+            padding: 15px 30px; /* Más padding para botones */
+            font-size: 1.2em;
             cursor: pointer;
-            background-color: #4CAF50;
+            background-color: var(--accent-color-primary); /* Color principal para botones */
             color: white;
             border: none;
-            border-radius: 5px;
-            transition: background-color 0.2s;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 10px; /* Más margen entre botones */
+            box-shadow: 0 4px 10px var(--shadow-medium); /* Sombra para botones */
+            text-transform: uppercase;
+            font-weight: 700;
         }
-        button:hover {
-            background-color: #45a049;
+        button:hover:not(:disabled) {
+            background-color: #2980b9; /* Tono más oscuro al pasar el ratón */
+            transform: translateY(-3px); /* Efecto "levantar" */
+            box-shadow: 0 6px 15px var(--shadow-strong);
         }
-        #game-messages {
-            margin-top: 15px;
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #333;
-            text-align: center;
-            min-height: 30px; /* Para mantener el espacio */
+        button:disabled {
+            background-color: var(--table-color-dark); /* Color de botón deshabilitado */
+            color: var(--accent-color-light);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Media queries para pantallas más pequeñas */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5em;
+                margin-bottom: 15px;
+            }
+            .game-container {
+                padding: 15px;
+                gap: 15px;
+            }
+            .player-area {
+                padding: 15px;
+            }
+            .player-area h3 {
+                font-size: 1.2em;
+            }
+            .player-cards-group {
+                flex-direction: column; /* Apilar las secciones de cartas */
+                gap: 10px;
+            }
+            .card-section {
+                min-width: unset;
+                width: 100%;
+            }
+            .card-section p {
+                font-size: 0.85em;
+            }
+            .card-container {
+                gap: 6px;
+                min-height: 70px;
+                padding: 6px;
+            }
+            .card {
+                width: 50px;
+                height: 75px;
+                font-size: 1.2em;
+            }
+            #discard-pile {
+                min-width: 80px;
+                min-height: 100px;
+            }
+            #game-messages {
+                font-size: 1em;
+                min-height: 30px;
+            }
+            button {
+                padding: 12px 20px;
+                font-size: 1em;
+                margin: 5px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Etíope</h1> <div class="game-container">
-        <div class="player-area">
+    <h1>Etíope</h1>
+
+    <div class="game-container">
+        <div class="player-area" style="grid-area: player2-area;">
             <h3>Jugador 2 (IA)</h3>
-            <p>Mano:</p>
-            <div id="player2-hand" class="card-container"></div>
-            <p>Cartas boca arriba:</p>
-            <div id="player2-face-up" class="card-container"></div>
-            <p>Cartas boca abajo:</p>
-            <div id="player2-face-down" class="card-container"></div>
+            <div class="player-cards-group">
+                <div class="card-section">
+                    <p>Mano:</p>
+                    <div id="player2-hand" class="card-container"></div>
+                </div>
+                <div class="card-section">
+                    <p>Boca Arriba:</p>
+                    <div id="player2-face-up" class="card-container"></div>
+                </div>
+                <div class="card-section">
+                    <p>Boca Abajo:</p>
+                    <div id="player2-face-down" class="card-container"></div>
+                </div>
+            </div>
         </div>
 
-        <div class="game-area">
+        <div class="game-area" style="grid-area: game-area;">
             <h3>Montón de Descarte</h3>
             <div id="discard-pile" class="card-container"></div>
             <div id="game-messages"></div>
         </div>
 
-        <div class="player-area">
+        <div class="player-area" style="grid-area: player1-area;">
             <h3>Jugador 1 (Tú)</h3>
-            <p>Mano:</p>
-            <div id="player1-hand" class="card-container"></div>
-            <p>Cartas boca arriba:</p>
-            <div id="player1-face-up" class="card-container"></div>
-            <p>Cartas boca abajo:</p>
-            <div id="player1-face-down" class="card-container"></div>
+            <div class="player-cards-group">
+                <div class="card-section">
+                    <p>Mano:</p>
+                    <div id="player1-hand" class="card-container"></div>
+                </div>
+                <div class="card-section">
+                    <p>Boca Arriba:</p>
+                    <div id="player1-face-up" class="card-container"></div>
+                </div>
+                <div class="card-section">
+                    <p>Boca Abajo:</p>
+                    <div id="player1-face-down" class="card-container"></div>
+                </div>
+            </div>
         </div>
 
         <div id="game-controls">
-            <button id="draw-button">Tomar Montón</button>
+            <button id="main-action-button">Confirmar Mano y Empezar</button>
+            <button id="restart-button" style="display: none;">Reiniciar Juego</button>
         </div>
     </div>
 
