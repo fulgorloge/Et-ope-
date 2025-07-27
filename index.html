@@ -92,7 +92,8 @@
             flex-direction: column;
             align-items: center;
             flex-grow: 1;
-            min-width: 100px; /* Ajuste para evitar desbordamientos */
+            /* Eliminamos min-width aquí, lo ajustaremos en los card-container específicos */
+            /* min-width: 100px; */ 
         }
         .card-section p {
             margin-bottom: 8px;
@@ -105,7 +106,7 @@
 
         .card-container {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: wrap; /* Permitir que las cartas se envuelvan */
             gap: 8px; /* Más espacio entre cartas individuales */
             min-height: 90px;
             border: 1px solid var(--border-color-subtle);
@@ -117,25 +118,23 @@
             box-shadow: inset 0 0 5px var(--shadow-light);
         }
         
-        /* Estilos específicos para las pilas de cartas boca arriba/abajo */
-        /* Si quieres que solo se vea 1 carta en la pila, quita min-width/max-width y deja solo flex-direction:column; */
-        /* Si quieres apilamiento visual de varias cartas, necesitarías un JS más complejo para posicionarlas */
-        #player1-face-up, #player1-face-down,
-        #player2-face-up, #player2-face-down {
-            min-width: 80px; /* Tamaño de pila para mostrar varias cartas una al lado de otra si es necesario, o una centrada */
-            max-width: 80px;
-            height: 90px; /* Altura para el contenedor de pila */
-            overflow: hidden; /* Oculta si hay demasiadas cartas */
-            justify-content: flex-start; /* Alinea las cartas al inicio de la pila */
-            align-items: center; /* Centra las cartas horizontalmente */
-            flex-direction: column; /* Apila las cartas si hay varias en la misma "pila" */
+        /* Estilos para las 3 cartas boca arriba y 3 boca abajo */
+        #player1-face-up, #player2-face-up,
+        #player1-face-down, #player2-face-down {
+            min-width: calc((60px * 3) + (8px * 2) + (8px * 2)); /* 3 cartas de 60px + 2 gaps de 8px + 2 paddings de 8px */
+            max-width: calc((60px * 3) + (8px * 2) + (8px * 2)); /* Fijar el ancho para que quepan 3 cartas */
+            height: 90px; /* Altura de las cartas */
+            overflow: visible; /* Asegurarse de que todas las cartas sean visibles */
+            justify-content: center; /* Centrar las 3 cartas */
+            align-items: center; /* Centrar verticalmente */
+            flex-direction: row; /* Asegurar que estén en fila */
         }
-        /* Para mostrar solo la carta superior de la pila (más común en estos juegos) */
-        #player1-face-up .card:not(:first-child), #player1-face-down .card:not(:first-child),
-        #player2-face-up .card:not(:first-child), #player2-face-down .card:not(:first-child) {
-            display: none; /* Oculta todas menos la primera carta en estas pilas */
-        }
-
+        /* QUITAMOS: Para mostrar solo la carta superior de la pila (más común en estos juegos) */
+        /* #player1-face-up .card:not(:first-child), #player1-face-down .card:not(:first-child),
+           #player2-face-up .card:not(:first-child), #player2-face-down .card:not(:first-child) {
+               display: none; // Oculta todas menos la primera carta en estas pilas
+           }
+        */
 
         .game-area {
             grid-area: game-area;
@@ -296,6 +295,15 @@
                 padding: 12px 20px;
                 font-size: 1em;
                 margin: 5px;
+            }
+            /* Ajuste para móviles para las 3 cartas boca arriba/abajo */
+            #player1-face-up, #player2-face-up,
+            #player1-face-down, #player2-face-down {
+                min-width: unset; /* Deshabilitar el ancho fijo en móvil */
+                max-width: unset;
+                width: 100%; /* Ocupar todo el ancho disponible */
+                justify-content: center; /* Centrar cartas */
+                flex-wrap: wrap; /* Permitir que se envuelvan si no caben */
             }
         }
     </style>
