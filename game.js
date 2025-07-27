@@ -22,6 +22,12 @@ let discardPile = []; // Montón central de descarte
 let currentPlayer = ''; // 'player1' o 'player2'
 let twoEffectActive = false; // Bandera para el efecto del 2 (permite otro turno) o del 7 (mantiene el turno)
 
+// --- NUEVA FUNCIONALIDAD: PREPARACIÓN DE MANO INICIAL ---
+let gameState = 'setup'; // 'setup', 'playing', 'gameOver'
+let selectedSetupCard = null; // Almacena la primera carta clickeada en la fase de setup
+let selectedSetupCardElement = null; // Almacena el elemento DOM de la primera carta clickeada
+// --------------------------------------------------------
+
 // --- Referencias a elementos del DOM ---
 const player1HandEl = document.getElementById('player1-hand');
 const player1FaceUpEl = document.getElementById('player1-face-up');
@@ -30,7 +36,11 @@ const player2HandEl = document.getElementById('player2-hand');
 const player2FaceUpEl = document.getElementById('player2-face-up');
 const player2FaceDownEl = document.getElementById('player2-face-down');
 const discardPileEl = document.getElementById('discard-pile');
-const drawButton = document.getElementById('draw-button'); // Ahora es el botón "Tomar Montón"
+
+// --- BOTONES: mainActionButton y restartButton ---
+const mainActionButton = document.getElementById('main-action-button'); // Botón principal (Confirmar Mano / Tomar Montón)
+const restartButton = document.getElementById('restart-button'); // Nuevo botón de reiniciar
+
 const gameMessagesEl = document.getElementById('game-messages');
 
 // --- Funciones del Juego ---
@@ -60,6 +70,15 @@ function shuffleDeck(deckToShuffle) {
 
 // 3. Repartir Cartas Iniciales a los Jugadores
 function dealInitialCards() {
+    // Resetear manos de los jugadores y montón de descarte
+    players.player1.hand = [];
+    players.player1.faceUp = [];
+    players.player1.faceDown = [];
+    players.player2.hand = [];
+    players.player2.faceUp = [];
+    players.player2.faceDown = [];
+    discardPile = [];
+
     // 3 cartas en mano, 3 boca arriba, 3 boca abajo
     for (let playerKey in players) {
         for (let i = 0; i < 3; i++) {
@@ -96,6 +115,7 @@ function renderCards() {
     if (discardPile.length > 0) {
         discardPileEl.appendChild(createCardElement(discardPile[discardPile.length - 1], 'discard', 'top'));
     }
+    updateButtonStates(); // Actualizar el estado de los botones cada vez que se renderiza
 }
 
 // 5. Crear elemento HTML de una carta (con gestión de clics)
@@ -116,33 +136,112 @@ function createCardElement(card, owner, area) {
     cardEl.dataset.owner = owner; // 'player1' o 'player2'
     cardEl.dataset.area = area; // 'hand', 'faceUp', 'faceDown'
 
-    // Lógica para que el Jugador 1 pueda hacer clic en sus cartas
-    if (owner === 'player1' && players.player1.isTurn) {
-        // --- CAMBIO: ORDEN DE FASES DE JUEGO (Clics UI para Jugador 1) ---
-        // Prioridad: 1. Mano -> 2. Boca Arriba -> 3. Boca Abajo
-        const p1 = players.player1;
+    // --- Lógica de Clics para el Jugador 1 ---
+    if (owner === 'player1') {
+        if (gameState === 'setup' && (area === 'hand' || area === 'faceUp')) {
+            cardEl.addEventListener('click', () => handleSetupClick(card, area, cardEl));
+        } else if (gameState === 'playing' && players.player1.isTurn) {
+            const p1 = players.player1;
+            // Asegurarse de que el jugador SOLO puede hacer clic en la fase de juego actual
+            let canClick = false;
+            if (area === 'hand' && p1.hand.length > 0) {
+                canClick = true;
+            } else if (area === 'faceUp' && p1.hand.length === 0 && p1.faceUp.length > 0) {
+                canClick = true;
+            } else if (area === 'faceDown' && p1.hand.length === 0 && p1.faceUp.length === 0 && deck.length === 0 && p1.faceDown.length > 0) {
+                canClick = true;
+            }
 
-        if (area === 'hand' && p1.hand.length > 0) {
-            // Siempre se puede jugar de la mano si hay cartas
-            cardEl.addEventListener('click', () => playCard(card, 'hand'));
-        } else if (area === 'faceUp' && p1.hand.length === 0 && p1.faceUp.length > 0) {
-            // Solo se puede jugar de boca arriba si la mano está vacía
-            cardEl.addEventListener('click', () => playCard(card, 'faceUp'));
-        } else if (area === 'faceDown' && p1.hand.length === 0 && p1.faceUp.length === 0 && deck.length === 0 && p1.faceDown.length > 0) {
-            // Solo se puede jugar de boca abajo si la mano está vacía,
-            // las cartas boca arriba están vacías Y el mazo está vacío.
-            cardEl.addEventListener('click', () => playCard(card, 'faceDown', cardEl));
+            if (canClick) {
+                cardEl.addEventListener('click', () => playCard(card, area, cardEl));
+            } else {
+                cardEl.classList.add('disabled'); // Deshabilitar si no es la fase correcta
+            }
         } else {
-            // Si la carta no está en la fase de juego activa, no es clicable
-            cardEl.classList.add('disabled'); // Opcional: añade una clase para indicar que no es clicable
+             // Deshabilita clics para cartas del jugador 1 si no es su turno o no es la fase adecuada
+            cardEl.classList.add('disabled');
         }
-        // -----------------------------------------------------------------
     }
+    // -------------------------------------------------------------------------
     return cardEl;
 }
 
+// --- NUEVA FUNCIONALIDAD: PREPARACIÓN DE MANO INICIAL (Handler de Clics) ---
+function handleSetupClick(card, area, cardEl) {
+    if (selectedSetupCard === null) {
+        // Primera carta seleccionada
+        selectedSetupCard = { card, area };
+        selectedSetupCardElement = cardEl;
+        cardEl.classList.add('selected-for-swap');
+        showMessage("Carta seleccionada para intercambiar. Haz clic en otra carta de tu mano o boca arriba.");
+    } else {
+        // Segunda carta seleccionada, realizar el intercambio
+        if (selectedSetupCard.card === card) {
+            // Misma carta clickeada, deseleccionar
+            selectedSetupCardElement.classList.remove('selected-for-swap');
+            selectedSetupCard = null;
+            selectedSetupCardElement = null;
+            showMessage("Selección cancelada.");
+            return;
+        }
+
+        // Asegurarse de que las cartas son de las áreas permitidas para el intercambio
+        if (!(selectedSetupCard.area === 'hand' || selectedSetupCard.area === 'faceUp') || !(area === 'hand' || area === 'faceUp')) {
+            showMessage("Solo puedes intercambiar cartas entre tu mano y tus cartas boca arriba.");
+            selectedSetupCardElement.classList.remove('selected-for-swap');
+            selectedSetupCard = null;
+            selectedSetupCardElement = null;
+            return;
+        }
+
+        // Realizar el intercambio entre las dos cartas
+        const p1 = players.player1;
+
+        // Encuentra y quita la primera carta de su área
+        let card1SourceArray = selectedSetupCard.area === 'hand' ? p1.hand : p1.faceUp;
+        let card1Index = card1SourceArray.findIndex(c => c === selectedSetupCard.card);
+        card1SourceArray.splice(card1Index, 1);
+
+        // Encuentra y quita la segunda carta de su área
+        let card2SourceArray = area === 'hand' ? p1.hand : p1.faceUp;
+        let card2Index = card2SourceArray.findIndex(c => c === card);
+        card2SourceArray.splice(card2Index, 1);
+
+        // Añade la primera carta al área de la segunda
+        card2SourceArray.push(selectedSetupCard.card);
+        // Añade la segunda carta al área de la primera
+        card1SourceArray.push(card);
+
+        showMessage("Cartas intercambiadas. Puedes seguir intercambiando o confirmar tu mano.");
+        
+        // Resetear la selección
+        selectedSetupCard = null;
+        selectedSetupCardElement = null;
+        renderCards(); // Volver a renderizar para mostrar los cambios y actualizar listeners
+    }
+}
+
+// Función para confirmar la mano inicial y empezar el juego
+function confirmHandSetup() {
+    if (gameState !== 'setup') return; // Solo funciona en la fase de setup
+
+    gameState = 'playing';
+    mainActionButton.textContent = 'Tomar Montón'; // Cambiar el texto del botón
+    showMessage("¡Mano confirmada! El juego ha comenzado. Es tu turno.");
+
+    currentPlayer = 'player1';
+    players.player1.isTurn = true;
+    renderCards(); // Re-renderizar para activar los listeners de juego normal
+}
+// --------------------------------------------------------------------------
+
 // 6. Lógica para Jugar una Carta
 async function playCard(cardToPlay, fromArea, clickedElement = null) {
+    if (gameState !== 'playing') {
+        showMessage("El juego no ha comenzado aún. Confirma tu mano primero.");
+        return;
+    }
+
     if (!players[currentPlayer].isTurn) {
         showMessage("No es tu turno.");
         return;
@@ -150,7 +249,6 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
 
     const p = players[currentPlayer]; // Referencia al jugador actual
 
-    // --- CAMBIO: ORDEN DE FASES DE JUEGO (Validación en playCard) ---
     // Asegurar que la carta se juega desde la fase correcta
     if (fromArea === 'hand' && p.hand.length === 0) {
         showMessage("Error: No tienes cartas en tu mano para jugar.");
@@ -164,7 +262,6 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
         showMessage("Solo puedes jugar cartas boca abajo si tu mano y tus cartas boca arriba están vacías, y el mazo está agotado.");
         return;
     }
-    // ------------------------------------------------------------------
 
     let actualCardToPlay = cardToPlay;
     let cardIndex;
@@ -228,7 +325,7 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
 
     await handleSpecialCards(actualCardToPlay);
 
-    renderCards();
+    renderCards(); // Volver a renderizar las cartas y actualizar el estado de los botones
     checkWinCondition();
 
     if (!twoEffectActive) {
@@ -287,8 +384,6 @@ function getValueNumber(value) {
 // 8. Manejar efectos de cartas especiales (10, 2, 7, Trío)
 async function handleSpecialCards(playedCard) {
     // Resetear el efecto del 2 (o 7) si la carta actual no es un 2.
-    // Esto es crucial para que el turno cambie después de la segunda carta del combo del 2,
-    // o para que el turno pase después de que un 7 fue jugado y su efecto se aplicó.
     if (twoEffectActive && playedCard.value !== '2' && playedCard.value !== '7') {
         twoEffectActive = false;
     }
@@ -309,37 +404,31 @@ async function handleSpecialCards(playedCard) {
         return; // Salir, ya que el jugador lanzará otra carta
     }
 
-    // --- CAMBIO AÑADIDO: EFECTO DEL 7 (Revertir Sentido) ---
+    // --- EFECTO DEL 7 (Revertir Sentido) ---
     if (playedCard.value === '7') {
         showMessage("¡Has jugado un 7! ¡El sentido del juego se ha revertido! Te toca de nuevo.");
-        // Para dos jugadores, "revertir sentido" significa que el turno se queda con el jugador actual.
-        // La bandera 'twoEffectActive' evitará que 'switchTurn()' se ejecute al final del ciclo de juego.
         twoEffectActive = true;
-        return; // Salir, ya que el turno se mantiene para este jugador.
+        return;
     }
     // --------------------------------------------------------
 
     // --- Efecto de Trío ---
-    // Chequear las últimas 3 cartas jugadas (incluyendo la actual)
     if (discardPile.length >= 3) {
         const lastThreeCards = discardPile.slice(-3);
-        // Necesitamos normalizar los valores, especialmente si hay Jokers
-        // Un Joker toma el valor de la carta que lo acompaña en el trío
         let potentialTrioValue = null;
         const nonJokerCards = lastThreeCards.filter(c => c.type !== 'joker' && c.type !== 'joker-chosen');
 
         if (nonJokerCards.length > 0) {
             potentialTrioValue = nonJokerCards[0].value;
         } else if (lastThreeCards.length === 3 && lastThreeCards.every(c => c.type === 'joker' || c.type === 'joker-chosen')) {
-            // Si son 3 jokers, el jugador debería decidir qué valor representa el trío
             if (currentPlayer === 'player1') {
-                const chosenValue = await askForJokerValue(); // Preguntar al jugador el valor del trío de Jokers
+                const chosenValue = await askForJokerValue();
                 if (chosenValue) {
                     potentialTrioValue = chosenValue;
                 } else {
-                    return; // Jugador canceló, no se forma el trío
+                    return;
                 }
-            } else { // IA elige un valor para el trío de Jokers (básico)
+            } else {
                 potentialTrioValue = values[Math.floor(Math.random() * values.length)];
             }
         }
@@ -356,17 +445,15 @@ async function handleSpecialCards(playedCard) {
             if (isActualTrio) {
                 showMessage(`¡Trío de ${potentialTrioValue}s! Quemando todos los ${potentialTrioValue}s de las manos de todos los jugadores.`);
 
-                // Quemar cartas de ese valor en las manos de TODOS los jugadores
                 for (let playerKey in players) {
                     players[playerKey].hand = players[playerKey].hand.filter(card => {
-                        // Un Joker en la mano TAMBIÉN se quema si su valor elegido PUEDE ser el valor del trío
                         if (card.value === potentialTrioValue || card.type === 'joker' || card.type === 'joker-chosen') {
-                            return false; // Eliminar la carta
+                            return false;
                         }
-                        return true; // Mantener la carta
+                        return true;
                     });
                 }
-                renderCards(); // Volver a renderizar para mostrar las manos actualizadas
+                renderCards();
             }
         }
     }
@@ -375,22 +462,33 @@ async function handleSpecialCards(playedCard) {
 
 // 9. Cambiar de Turno
 function switchTurn() {
-    // Solo cambiar de turno si el efecto del 2 (o 7) NO está activo
+    if (gameState !== 'playing') return;
+
     if (!twoEffectActive) {
         players[currentPlayer].isTurn = false;
         currentPlayer = (currentPlayer === 'player1') ? 'player2' : 'player1';
         players[currentPlayer].isTurn = true;
         showMessage(`Es el turno de ${currentPlayer === 'player1' ? 'Jugador 1' : 'Jugador 2'}.`);
 
+        renderCards(); // Volver a renderizar para actualizar el estado del botón principal para el siguiente turno
+
         // Si es el turno de la IA (player2), debería hacer un movimiento
         if (currentPlayer === 'player2') {
+            // Deshabilitar el botón de "Tomar Montón" mientras juega la IA
+            mainActionButton.disabled = true;
             setTimeout(aiPlay, 1500); // Dar un pequeño retraso para la IA
+        } else {
+            // Habilitar el botón de "Tomar Montón" para el Jugador 1
+            mainActionButton.disabled = false;
         }
     }
+    updateButtonStates(); // Asegurarse de que los estados de los botones se actualicen
 }
 
 // 10. Lógica de la IA (Jugador 2)
 async function aiPlay() {
+    if (gameState !== 'playing') return;
+
     const aiPlayer = players.player2;
     const topCard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
     let played = false;
@@ -407,56 +505,44 @@ async function aiPlay() {
         return null;
     };
 
-    // --- CAMBIO: ORDEN DE FASES DE JUEGO (Prioridad de la IA) ---
-
-    // 1. Intentar jugar de la mano si tiene cartas en mano
+    // --- ORDEN DE FASES DE JUEGO (Prioridad de la IA) ---
     if (aiPlayer.hand.length > 0) {
         cardToPlay = findBestPlay(aiPlayer.hand);
         if (cardToPlay) {
             fromArea = 'hand';
         }
     }
-
-    // 2. Si mano vacía, intentar jugar de boca arriba
     if (!cardToPlay && aiPlayer.hand.length === 0 && aiPlayer.faceUp.length > 0) {
         cardToPlay = findBestPlay(aiPlayer.faceUp);
         if (cardToPlay) {
             fromArea = 'faceUp';
         }
     }
-    
-    // 3. Si mano y boca arriba vacías Y mazo vacío, intentar jugar de boca abajo
     if (!cardToPlay && aiPlayer.hand.length === 0 && aiPlayer.faceUp.length === 0 && deck.length === 0 && aiPlayer.faceDown.length > 0) {
-        // La IA simplemente intenta la primera carta boca abajo.
-        // La validación de si es jugable ocurre en el if/else anidado.
-        const revealedCard = aiPlayer.faceDown[0]; // Mira la carta, no la quita aún
-        showMessage(`El Jugador 2 ha revelado una carta boca abajo.`); // Se anuncia la revelación antes de saber si es válida
+        const revealedCard = aiPlayer.faceDown[0];
+        showMessage(`El Jugador 2 ha revelado una carta boca abajo.`);
 
         if (isValidPlay(revealedCard, topCard)) {
-            cardToPlay = aiPlayer.faceDown.shift(); // Ahora sí la quita
+            cardToPlay = aiPlayer.faceDown.shift();
             fromArea = 'faceDown';
         } else {
-            // Si la carta boca abajo no es válida, la IA toma el montón.
-            // Esto es una excepción a la jugada normal, por eso se maneja aquí directamente.
             showMessage(`El Jugador 2 no pudo jugar su carta boca abajo y toma el montón.`);
             takePile(aiPlayer);
-            renderCards(); // Renderizar después de tomar el montón
+            renderCards();
             checkWinCondition();
             if (!twoEffectActive) {
                 switchTurn();
             }
-            return; // Termina el turno de la IA aquí.
+            return;
         }
     }
 
-    // Procesar la jugada encontrada (o si no se encontró ninguna)
     if (cardToPlay) {
         let sourceArray;
         if (fromArea === 'hand') sourceArray = aiPlayer.hand;
         else if (fromArea === 'faceUp') sourceArray = aiPlayer.faceUp;
-        // Si fromArea es 'faceDown', la carta ya fue shift-eada en el bloque de arriba.
 
-        if (fromArea !== 'faceDown') { // Si no es de boca abajo, la removemos del array.
+        if (fromArea !== 'faceDown') {
             const index = sourceArray.findIndex(c => c.value === cardToPlay.value && c.suit === cardToPlay.suit);
             sourceArray.splice(index, 1);
         }
@@ -467,9 +553,7 @@ async function aiPlay() {
         ensureMinHandCards(aiPlayer);
         await handleSpecialCards(cardToPlay);
     }
-    // ------------------------------------------------------------------
 
-    // Si la IA no pudo jugar nada de ninguna de sus áreas (después de considerar todas las fases), toma el montón.
     if (!played) {
         showMessage(`El Jugador 2 no pudo jugar ninguna carta. ¡Toma el montón!`);
         takePile(aiPlayer);
@@ -484,16 +568,37 @@ async function aiPlay() {
 }
 
 
-// 11. Función para el botón de "Tomar Montón" (para el Jugador 1)
-drawButton.addEventListener('click', () => {
-    if (!players.player1.isTurn) {
-        showMessage("No es tu turno.");
-        return;
-    }
+// 11. Función para el botón principal (Confirmar Mano / Tomar Montón)
+// Aquí se añaden los listeners, si mainActionButton fuera null, daría el error.
+if (mainActionButton) { // Verificar si el elemento existe antes de añadir el listener
+    mainActionButton.addEventListener('click', () => {
+        if (gameState === 'setup') {
+            confirmHandSetup();
+        } else if (gameState === 'playing') {
+            if (!players.player1.isTurn) {
+                showMessage("No es tu turno.");
+                return;
+            }
+            showMessage("Has decidido tomar el montón de descarte.");
+            takePile(players.player1);
+        }
+    });
+} else {
+    console.error("Error: El botón con ID 'main-action-button' no fue encontrado en el DOM.");
+}
 
-    showMessage("Has decidido tomar el montón de descarte.");
-    takePile(players.player1);
-});
+
+// --- NUEVO BOTÓN: Reiniciar Juego ---
+// Aquí se añaden los listeners, si restartButton fuera null, daría el error.
+if (restartButton) { // Verificar si el elemento existe antes de añadir el listener
+    restartButton.addEventListener('click', () => {
+        initGame(); // Llama a la función de inicialización para reiniciar todo
+    });
+} else {
+    console.error("Error: El botón con ID 'restart-button' no fue encontrado en el DOM.");
+}
+// ------------------------------------
+
 
 // 12. Función para tomar el montón
 function takePile(player) {
@@ -502,21 +607,23 @@ function takePile(player) {
     showMessage(`${player === players.player1 ? 'Has' : 'El Jugador 2 ha'} tomado el montón.`);
     shuffleDeck(player.hand);
     renderCards();
-    twoEffectActive = false; // Asegurar que el efecto del 2 o 7 se reinicie
-    switchTurn(); // Después de tomar el montón, el turno siempre pasa
+    twoEffectActive = false;
+    switchTurn();
 }
 
 // 13. Chequear Condición de Victoria
 function checkWinCondition() {
-    // Un jugador gana cuando se queda sin cartas en mano, boca arriba y boca abajo
+    if (gameState !== 'playing') return false;
+
     if (players.player1.hand.length === 0 && players.player1.faceUp.length === 0 && players.player1.faceDown.length === 0) {
+        gameState = 'gameOver'; // Establecer el estado del juego
         showMessage("¡Felicidades! ¡Has ganado el juego!");
-        // Aquí puedes agregar lógica para reiniciar o terminar el juego
-        // Por ejemplo, deshabilitar interacciones o mostrar un botón de "Reiniciar"
+        updateButtonStates(); // Actualizar botones al final del juego
         return true;
     } else if (players.player2.hand.length === 0 && players.player2.faceUp.length === 0 && players.player2.faceDown.length === 0) {
+        gameState = 'gameOver'; // Establecer el estado del juego
         showMessage("¡El Jugador 2 ha ganado! Más suerte la próxima vez.");
-        // Aquí puedes agregar lógica para reiniciar o terminar el juego
+        updateButtonStates(); // Actualizar botones al final del juego
         return true;
     }
     return false;
@@ -530,13 +637,39 @@ function showMessage(msg) {
 
 // Función auxiliar para asegurar que el jugador tenga al menos 3 cartas en la mano
 function ensureMinHandCards(player) {
+    if (gameState !== 'playing') return; 
+
     while (player.hand.length < 3 && deck.length > 0) {
         player.hand.push(deck.pop());
-        // Puedes ajustar este mensaje si se repite mucho, o hacerlo más general.
-        // showMessage(`${player === players.player1 ? 'Has' : 'El Jugador 2 ha'} robado una carta para reponer su mano (mínimo de 3).`);
     }
-    if (player.hand.length < 3 && deck.length === 0) {
-        // showMessage("No quedan cartas en el mazo para reponer la mano al mínimo de 3.");
+}
+
+// --- Gestión de estados de los botones ---
+function updateButtonStates() {
+    if (gameState === 'setup') {
+        if (mainActionButton) { // Verificar antes de usar
+            mainActionButton.textContent = "Confirmar Mano y Empezar";
+            mainActionButton.disabled = false;
+        }
+        if (restartButton) { // Verificar antes de usar
+            restartButton.style.display = 'none'; // Ocultar Reiniciar
+        }
+    } else if (gameState === 'playing') {
+        if (mainActionButton) { // Verificar antes de usar
+            mainActionButton.textContent = "Tomar Montón";
+            // Deshabilitar si es el turno de la IA
+            mainActionButton.disabled = (currentPlayer === 'player2');
+        }
+        if (restartButton) { // Verificar antes de usar
+            restartButton.style.display = 'none'; // Ocultar Reiniciar
+        }
+    } else if (gameState === 'gameOver') {
+        if (mainActionButton) { // Verificar antes de usar
+            mainActionButton.disabled = true; // Deshabilitar Tomar Montón
+        }
+        if (restartButton) { // Verificar antes de usar
+            restartButton.style.display = 'inline-block'; // Mostrar Reiniciar
+        }
     }
 }
 
@@ -544,10 +677,18 @@ function ensureMinHandCards(player) {
 function initGame() {
     createDeck();
     dealInitialCards();
-    currentPlayer = 'player1'; // El Jugador 1 empieza
-    players.player1.isTurn = true;
-    renderCards();
-    showMessage("¡El juego Etíope ha comenzado! Es tu turno.");
+    twoEffectActive = false; // Resetear cualquier efecto activo
+    selectedSetupCard = null; // Resetear selección de setup
+    selectedSetupCardElement = null; // Resetear elemento de selección
+
+    gameState = 'setup'; // El juego siempre inicia en fase de preparación
+    currentPlayer = ''; // No hay turno hasta que empiece el juego
+    players.player1.isTurn = false; // No es el turno de nadie en setup
+    players.player2.isTurn = false;
+
+    renderCards(); // Renderizar las cartas para la fase de setup
+    updateButtonStates(); // Actualizar el estado de los botones
+    showMessage("¡Bienvenido a Etíope! Intercambia cartas entre tu mano y tus cartas boca arriba para empezar. Luego, haz clic en 'Confirmar Mano y Empezar'.");
 }
 
 // Iniciar el juego
