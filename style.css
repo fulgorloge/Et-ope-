@@ -39,6 +39,39 @@ h1 {
     text-align: center;
 }
 
+/* --- Nuevo: Área de ingreso de nombre de usuario y avatar --- */
+.name-input-area {
+    background-color: #e6f7ff;
+    border: 1px solid #91d5ff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.name-input-area label {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #0050b3;
+}
+
+.name-input-area input[type="text"],
+.name-input-area input[type="url"] { /* Estilo para el input de URL también */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 80%;
+    font-size: 1em;
+    text-align: center;
+}
+/* --- Fin Nuevo --- */
+
+
 /* Mensajes del juego */
 .game-messages {
     background-color: #e0f7fa;
@@ -74,6 +107,58 @@ h1 {
     color: #2e7d32;
 }
 
+/* --- NUEVO: Estilos para el Ranking --- */
+.ranking-container {
+    width: 100%;
+    max-width: 400px;
+    background-color: #f0f8ff;
+    border: 1px solid #cceeff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.ranking-container h2 {
+    color: #007bff;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+}
+
+.ranking-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+.ranking-item span {
+    font-size: 1.1em;
+    color: #444;
+}
+
+.ranking-item .player-name {
+    font-weight: bold;
+}
+
+.ranking-item .player-score {
+    color: #28a745;
+    font-weight: bold;
+}
+/* --- FIN NUEVO --- */
 
 /* Áreas de los jugadores */
 .player-area {
@@ -82,9 +167,27 @@ h1 {
     text-align: center;
 }
 
+/* --- Nuevo: Contenedor para el nombre y avatar del jugador actual --- */
+.player-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.player-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* Para hacerlo redondo */
+    border: 2px solid #007bff;
+    object-fit: cover; /* Asegura que la imagen cubra el área sin distorsionarse */
+}
+/* --- Fin Nuevo --- */
+
 .player-area h2 {
     color: #555;
-    margin-bottom: 15px;
+    margin: 0; /* Reiniciar margen para el h2 dentro del header */
 }
 
 /* Contenedores de cartas (mano, boca arriba, boca abajo) */
@@ -276,6 +379,14 @@ h1 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* --- Nuevo: Estilo para el avatar del oponente --- */
+.opponent-player-area .player-avatar { /* Reutiliza la clase player-avatar */
+    width: 40px;
+    height: 40px;
+    margin-bottom: 5px;
+}
+/* --- Fin Nuevo --- */
+
 .opponent-player-area h3 {
     color: #444;
     margin-top: 0;
@@ -328,6 +439,119 @@ h1 {
 }
 
 
+/* --- Estilos para el Mini Chat --- */
+.chat-container {
+    width: 100%;
+    max-width: 500px; /* Ancho máximo del chat */
+    background-color: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Para que el chat-messages no sobresalga */
+}
+
+.chat-messages {
+    flex-grow: 1; /* Para que ocupe el espacio disponible */
+    max-height: 200px; /* Altura máxima del área de mensajes */
+    overflow-y: auto; /* Scroll si hay muchos mensajes */
+    padding: 10px;
+    display: flex;
+    flex-direction: column; /* Para que los mensajes se apilen */
+    gap: 8px; /* Espacio entre mensajes */
+}
+
+.chat-message {
+    padding: 7px 12px;
+    border-radius: 15px;
+    background-color: #e6e6e6;
+    align-self: flex-start; /* Por defecto a la izquierda */
+    word-wrap: break-word; /* Para que el texto largo se rompa */
+    max-width: 90%; /* Limita el ancho del mensaje */
+}
+
+.chat-message.self {
+    background-color: #d1e7dd; /* Un color diferente para tus propios mensajes */
+    align-self: flex-end; /* A la derecha para tus mensajes */
+}
+
+.chat-message strong {
+    color: #007bff; /* Color para el nombre del remitente */
+}
+
+.chat-input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #e0e0e0;
+    gap: 10px;
+    align-items: center; /* Alinea los elementos verticalmente */
+}
+
+.chat-input-area input[type="text"] {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    font-size: 0.9em;
+}
+
+.chat-button {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    color: #fff;
+    background-color: #28a745; /* Verde para los botones del chat */
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.chat-button:hover {
+    background-color: #218838;
+}
+
+/* Contenedor del selector de emojis */
+.emoji-picker-container {
+    position: relative;
+    display: inline-block; /* Para que el picker se posicione correctamente */
+}
+
+.emoji-picker {
+    position: absolute;
+    bottom: 45px; /* Aparece encima del botón */
+    left: 0;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* 6 emojis por fila */
+    gap: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000; /* Asegura que esté por encima de otros elementos */
+}
+
+.emoji-picker.hidden {
+    display: none;
+}
+
+.emoji-picker button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background-color 0.1s ease;
+}
+
+.emoji-picker button:hover {
+    background-color: #eee;
+}
+/* --- FIN Estilos para el Mini Chat --- */
+
+
 /* Media Queries para responsividad */
 @media (max-width: 768px) {
     .game-container {
@@ -363,6 +587,27 @@ h1 {
         width: 40px;
         height: 60px;
         font-size: 0.9em;
+    }
+
+    /* Ajustes para el chat en móviles */
+    .chat-container {
+        max-width: 100%;
+        margin-top: 15px;
+    }
+    .chat-input-area {
+        flex-wrap: wrap; /* Permite que los elementos de input se envuelvan */
+        gap: 5px;
+    }
+    .chat-input-area input[type="text"] {
+        width: calc(100% - 70px); /* Ajusta el ancho para dejar espacio al botón */
+    }
+    .chat-button {
+        padding: 6px 10px;
+        font-size: 0.8em;
+    }
+    .emoji-picker {
+        bottom: 40px; /* Ajusta la posición del picker */
+        grid-template-columns: repeat(5, 1fr); /* Menos columnas en móvil */
     }
 }
 
@@ -404,5 +649,14 @@ h1 {
         width: 35px;
         height: 50px;
         font-size: 0.8em;
+    }
+
+    /* Ajustes adicionales para el chat en pantallas muy pequeñas */
+    .chat-input-area input[type="text"] {
+        width: 100%; /* Ocupa todo el ancho */
+        margin-bottom: 5px;
+    }
+    .chat-input-area .chat-button {
+        flex: 1; /* Distribuye el espacio entre los botones */
     }
 }
