@@ -3,85 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Cartas</title>
+    <title>Tu Juego de Cartas</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <h1>Juego de Cartas</h1>
-
-        <div id="game-messages" class="game-messages">Presiona "Iniciar Juego" para comenzar una nueva partida.</div>
-
-        <div class="game-area player2-area">
-            <h2>Jugador 2 (IA)</h2>
-            <div class="card-area-wrapper">
-                <div class="card-area player2-hand" id="player2-hand"></div>
-                <div class="card-count" id="player2-hand-count">0</div>
-                <p>Cartas en Mano (IA)</p>
-            </div>
-            <div class="card-area-wrapper">
-                <div class="card-area player2-face-up" id="player2-face-up"></div>
-                <p>Cartas Boca Arriba (IA)</p>
-            </div>
-            <div class="card-area-wrapper">
-                <div class="card-area player2-face-down" id="player2-face-down"></div>
-                <div class="card-count" id="player2-face-down-count">0</div>
-                <p>Cartas Boca Abajo (IA)</p>
-            </div>
-        </div>
-
-        <div class="game-area common-area">
-            <div class="deck-discard">
-                <div class="deck-area">
-                    <div class="card-back deck" id="deck"></div>
-                    <div class="card-count" id="deck-count">0</div>
-                    <p>Mazo</p>
-                </div>
-                <div class="discard-area">
-                    <div class="card-placeholder" id="discard-pile"></div>
-                    <div class="card-count" id="discard-count">0</div>
-                    <p>Descarte</p>
-                </div>
-            </div>
-
-            <div class="game-controls">
-                <button id="start-button">Iniciar Juego</button>
-                <button id="restart-button">Reiniciar Juego</button>
-                <button id="accept-lote-button" disabled>Aceptar Lote</button>
-                <button id="reject-lote-button" disabled>Rechazar Lote</button>
-                <button id="swap-button" disabled>Intercambiar Cartas</button>
-                <button id="end-setup-button" disabled>Finalizar Preparación</button>
-                <button id="play-button" disabled>Jugar Carta</button>
-                <button id="take-pile-button" disabled>Tomar Descarte</button>
-            </div>
-        </div>
-
-        <div class="game-area player1-area">
-            <h2>Jugador 1</h2>
-            
-            <div class="card-area-wrapper player1-lote-selection-wrapper">
-                <div class="card-area player1-lote-selection" id="player1-lote-selection"></div>
-                <div class="card-count" id="player1-lote-selection-count">0</div>
-                <p>Selección de Lote (3)</p>
-            </div>
-
-            <div class="card-area-wrapper">
-                <div class="card-area player1-hand" id="player1-hand"></div>
-                <div class="card-count" id="player1-hand-count">0</div>
-                <p>Cartas en Mano (3)</p>
-            </div>
-            <div class="card-area-wrapper">
-                <div class="card-area player1-face-up" id="player1-face-up"></div>
-                <p>Cartas Boca Arriba (3)</p>
-            </div>
-            <div class="card-area-wrapper">
-                <div class="card-area player1-face-down" id="player1-face-down"></div>
-                <div class="card-count" id="player1-face-down-count">0</div>
-                <p>Cartas Boca Abajo (3)</p>
-            </div>
+        <div class="game-controls">
+            <button id="start-button" class="game-button">Iniciar Juego</button>
+            <button id="swap-button" class="game-button">Intercambiar Cartas</button>
+            <button id="play-button" class="game-button">Jugar Carta</button>
+            <button id="take-pile-button" class="game-button">Tomar Descarte</button>
+            <button id="restart-button" class="game-button">Reiniciar Juego</button>
         </div>
     </div>
 
+    <footer class="game-footer">
+        <p>&copy; 2024 [Tu Nombre o Nombre de tu Compañía]. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
