@@ -214,7 +214,8 @@ function updateUI() {
         } else {
             startGameBtn.textContent = 'Iniciar Juego'; 
             const playerInfo = publicPlayerStates[myPlayerId];
-            startGameBtn.disabled = !playerInfo || !playerInfo.readyForPlay; // Deshabilitar si no ha terminado el setup
+            // El botón de "Iniciar Juego" solo se habilita si el jugador ha completado su setup.
+            startGameBtn.disabled = !playerInfo || !playerInfo.readyForPlay; 
         }
     } else {
         startGameBtn.style.display = 'none'; 
@@ -388,8 +389,10 @@ saveUsernameBtn.addEventListener('click', () => {
     if (username) {
         // Enviar tanto el nombre como el avatar al servidor
         socket.emit('setPlayerInfo', { playerName: username, avatarUrl: avatarUrl });
-        myPlayerName = username; // Actualizar el nombre localmente
-        myPlayerAvatarUrl = avatarUrl || DEFAULT_CLIENT_AVATAR_URL; // Actualizar el avatar localmente (si es vacío, usar el default del cliente)
+        // Actualizar el nombre y avatar localmente ANTES de que el servidor responda
+        // Esto da una respuesta más rápida en la UI. El estado final se sincronizará con el servidor.
+        myPlayerName = username; 
+        myPlayerAvatarUrl = avatarUrl || DEFAULT_CLIENT_AVATAR_URL; 
         updateGameMessage(`¡Hola, ${myPlayerName}! Esperando a otros jugadores...`, 'info');
         updateUI(); 
     } else {
@@ -443,9 +446,7 @@ startGameBtn.addEventListener('click', () => {
             });
             selectedCardsForSwap = []; 
             updateGameMessage('Enviando solicitud de intercambio. Esperando a otros jugadores...', 'info');
-            // NO TOCAR EL TEXTO DEL BOTÓN AQUÍ, el servidor actualizará el estado de readyForPlay
-            // y la UI se renderizará en consecuencia.
-            startGameBtn.disabled = true; // Deshabilitar después de enviar el swap
+            startGameBtn.disabled = true; // Deshabilitar después de enviar el swap para evitar dobles clics
             updateUI(); 
         } else {
             const playerInfo = publicPlayerStates[myPlayerId];
@@ -459,9 +460,10 @@ startGameBtn.addEventListener('click', () => {
             }
         }
     } else {
-        // Esta parte es para cuando el juego ya está activo y se quiere reiniciar
-        // Pero la funcionalidad de reiniciar juego no está completamente implementada en el servidor.
-        socket.emit('gameStartRequest'); // Podría ser 'restartGameRequest' en el futuro
+        // Esta parte es para cuando el juego ya está activo y se quiere reiniciar.
+        // La funcionalidad de reiniciar juego no está completamente implementada en el servidor en el código que me pasaste.
+        // Si implementas un reinicio completo, aquí emitirías un evento específico como 'restartGame'.
+        socket.emit('gameStartRequest'); // Por ahora, re-usa gameStartRequest, pero idealmente sería un evento diferente.
         updateGameMessage('Funcionalidad de reiniciar juego no implementada completamente en el servidor.', 'info');
     }
 });
@@ -486,29 +488,11 @@ restartGameBtn.addEventListener('click', () => {
 socket.on('connect', () => {
     myPlayerId = socket.id;
     updateUI(); 
-});
-
-socket.on('message', (message, type = 'info') => {
-    updateGameMessage(message, type);
-});
-
-// Escuchar mensajes de chat
-socket.on('chatMessage', (data) => {
-    addChatMessage(data.senderName, data.text, data.senderId);
-});
-
-
-socket.on('currentGameState', (state) => {
-    // console.log('[CLIENT] Received current game state:', state);
-    if (state.playerName) {
-        myPlayerName = state.playerName; 
-    }
-    if (state.playerAvatarUrl) {
-        myPlayerAvatarUrl = state.playerAvatarUrl;
-    }
-
-    myHand = state.playerHand;
-    myFaceUp = state.playerFaceUp;
-    myFaceDown = state.playerFaceDown; 
-    deckCount = state.deckCount;
-    discardTopCard = state.dis
+    // Si el jugador ya tiene un nombre guardado en localStorage, intentar cargarlo
+    const storedName = localStorage.getItem('playerName');
+    const storedAvatar = localStorage.getItem('playerAvatarUrl');
+    if (storedName) {
+        // Enviar esta información al servidor inmediatamente al reconectar
+        socket.emit('setPlayerInfo', { playerName: storedName, avatarUrl: storedAvatar || DEFAULT_CLIENT_AVATAR_URL });
+        myPlayerName = storedName;
+        myPlayerAvatarUrl = storedAvatar || DEFAULT_C
