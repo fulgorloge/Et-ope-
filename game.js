@@ -9,7 +9,16 @@
 const socket = io();
 
 // --- Elementos del DOM ---
-const gameMessagesEl = document.getElementById('game-messages');
+// Pantalla de Perfil
+const nameInputArea = document.getElementById('name-input-area');
+const usernameInput = document.getElementById('usernameInput');
+const avatarUrlInput = document.getElementById('avatarUrlInput');
+const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+const gameMessagesInitialEl = document.getElementById('game-messages-initial'); // Mensajes específicos para la pantalla inicial
+
+// Pantalla de Juego
+const gameContainerEl = document.getElementById('game-container'); // Nuevo contenedor principal del juego
+const gameMessagesEl = document.getElementById('game-messages'); // Mensajes dentro del juego
 const playerHandEl = document.getElementById('player1-hand');
 const playerFaceUpEl = document.getElementById('player1-face-up');
 const playerFaceDownEl = document.getElementById('player1-face-down');
@@ -24,12 +33,6 @@ const playerNameEl = document.getElementById('player-name');
 const playerAvatarEl = document.getElementById('player-avatar');
 const opponentAreasEl = document.getElementById('opponent-areas');
 
-// Para la gestión de nombres de usuario y avatares
-const nameInputArea = document.getElementById('name-input-area');
-const usernameInput = document.getElementById('usernameInput');
-const avatarUrlInput = document.getElementById('avatarUrlInput');
-const saveUsernameBtn = document.getElementById('saveUsernameBtn');
-
 // Elementos del DOM para el Chat
 const chatMessagesEl = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chatInput');
@@ -37,9 +40,8 @@ const sendChatBtn = document.getElementById('sendChatBtn');
 const emojiBtn = document.getElementById('emojiBtn');
 const emojiPicker = document.getElementById('emojiPicker');
 
-// --- NUEVO: Elementos del DOM para el Ranking ---
+// Elementos del DOM para el Ranking
 const rankingListEl = document.getElementById('ranking-list');
-// --- FIN NUEVO ---
 
 
 const EMOJIS = [
@@ -63,7 +65,7 @@ let gameActive = false;
 let setupPhase = true; 
 let selectedCardsForSwap = []; 
 let publicPlayerStates = {}; 
-let currentRanking = []; // NUEVO: Para almacenar el ranking
+let currentRanking = []; 
 
 
 const DEFAULT_CLIENT_AVATAR_URL = 'https://via.placeholder.com/50?text=Yo'; 
@@ -145,34 +147,29 @@ function renderCards(cardArray, containerEl, isHidden = false, isInteractive = f
 }
 
 function updateGameMessage(message, type = 'info') {
-    gameMessagesEl.textContent = message;
-    gameMessagesEl.className = 'game-messages'; 
-    gameMessagesEl.classList.add(type); 
+    // Decide dónde mostrar el mensaje basado en si estamos en la pantalla de perfil o de juego
+    if (!myPlayerName) { // Si el nombre aún no está guardado, mostrar en la pantalla inicial
+        gameMessagesInitialEl.textContent = message;
+        gameMessagesInitialEl.className = 'game-messages'; 
+        gameMessagesInitialEl.classList.add(type); 
+    } else { // Si el nombre ya está guardado, mostrar en la pantalla de juego
+        gameMessagesEl.textContent = message;
+        gameMessagesEl.className = 'game-messages'; 
+        gameMessagesEl.classList.add(type); 
+    }
 }
 
 function updateUI() {
-    // Esconder o mostrar el área de input de nombre y avatar
-    if (!myPlayerName) { // Si el nombre no está establecido
-        nameInputArea.style.display = 'flex';
-        // Ocultar el resto del juego hasta que se elija un nombre
-        document.querySelectorAll('.game-container > *:not(#name-input-area):not(h1)').forEach(el => {
-            el.style.display = 'none';
-        });
-        gameMessagesEl.textContent = 'Por favor, ingresa tu nombre y un avatar para unirte al juego.';
-        gameMessagesEl.className = 'game-messages info';
-        document.querySelector('.chat-container').style.display = 'none';
-        document.querySelector('.ranking-container').style.display = 'none'; // NUEVO: Ocultar ranking
+    // Alternar visibilidad de las pantallas
+    if (!myPlayerName) { 
+        nameInputArea.classList.remove('hidden');
+        gameContainerEl.classList.add('hidden');
+        updateGameMessage('Por favor, ingresa tu nombre y un avatar para unirte al juego.', 'info');
         return; 
     } else {
-        nameInputArea.style.display = 'none';
-        document.querySelector('.game-messages').style.display = 'block'; 
-        document.querySelector('.opponent-areas').style.display = 'flex'; 
-        document.querySelector('.game-center-area').style.display = 'flex';
-        document.querySelector('.player-area').style.display = 'block'; 
-        document.querySelector('.chat-container').style.display = 'flex';
-        document.querySelector('.ranking-container').style.display = 'block'; // NUEVO: Mostrar ranking
+        nameInputArea.classList.add('hidden');
+        gameContainerEl.classList.remove('hidden');
     }
-
 
     renderCards(myHand, playerHandEl, false, myPlayerId === currentPlayerTurnId && gameActive && myHand.length > 0);
     renderCards(myFaceUp, playerFaceUpEl, false, myPlayerId === currentPlayerTurnId && gameActive && myHand.length === 0 && myFaceUp.length > 0);
@@ -214,7 +211,6 @@ function updateUI() {
         } else {
             startGameBtn.textContent = 'Iniciar Juego'; 
             const playerInfo = publicPlayerStates[myPlayerId];
-            // El botón de "Iniciar Juego" solo se habilita si el jugador ha completado su setup.
             startGameBtn.disabled = !playerInfo || !playerInfo.readyForPlay; 
         }
     } else {
@@ -228,7 +224,7 @@ function updateUI() {
     restartGameBtn.style.display = 'block'; 
 
     updateOpponentAreas();
-    updateRankingUI(); // NUEVO: Llamar a la función de actualización del ranking
+    updateRankingUI(); 
 }
 
 function updateOpponentAreas() {
@@ -244,7 +240,6 @@ function updateOpponentAreas() {
             opponentArea.classList.add('current-turn-indicator');
         }
 
-        // Mostrar el nombre del oponente y su avatar
         opponentArea.innerHTML = `
             <img class="player-avatar" src="${opponent.avatarUrl || DEFAULT_CLIENT_AVATAR_URL}" alt="${opponent.name}'s Avatar">
             <h3>${opponent.name}</h3>
@@ -272,7 +267,6 @@ function addChatMessage(senderName, message, senderId) {
     }
     messageEl.innerHTML = `<strong>${senderName}:</strong> ${message}`;
     chatMessagesEl.appendChild(messageEl);
-    // Auto-scroll al final del chat
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
 
@@ -280,8 +274,7 @@ function sendChatMessage() {
     const message = chatInput.value.trim();
     if (message) {
         socket.emit('chatMessage', message);
-        chatInput.value = ''; // Limpiar input
-        // Cerrar picker de emojis si estaba abierto
+        chatInput.value = ''; 
         emojiPicker.classList.add('hidden');
     }
 }
@@ -292,17 +285,17 @@ function populateEmojiPicker() {
         const button = document.createElement('button');
         button.textContent = emoji;
         button.addEventListener('click', () => {
-            chatInput.value += emoji; // Añadir emoji al input
-            chatInput.focus(); // Mantener el foco
+            chatInput.value += emoji; 
+            chatInput.focus(); 
         });
         emojiPicker.appendChild(button);
     });
 }
 // --- FIN Funciones para el Mini Chat ---
 
-// --- NUEVO: Funciones de Ranking del Cliente ---
+// --- Funciones de Ranking del Cliente ---
 function updateRankingUI() {
-    rankingListEl.innerHTML = ''; // Limpiar la lista existente
+    rankingListEl.innerHTML = ''; 
 
     if (currentRanking.length === 0) {
         const listItem = document.createElement('li');
@@ -314,14 +307,30 @@ function updateRankingUI() {
     currentRanking.forEach((player, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('ranking-item');
+        
+        // Determinar el nivel de estrellas basado en el puntaje
+        let starLevel = '';
+        if (player.score >= 5) {
+            starLevel = 'gold'; // 3 estrellas
+        } else if (player.score >= 2) {
+            starLevel = 'silver'; // 2 estrellas
+        } else if (player.score >= 1) {
+            starLevel = 'bronze'; // 1 estrella
+        }
+        listItem.dataset.score = starLevel; // Usar data-attribute para CSS
+
+        // Añadir trofeo para los top 3
+        const trophy = index < 3 ? `<span class="trophy-icon"></span>` : '';
+        const stars = starLevel ? `<span class="stars"></span>` : '';
+
         listItem.innerHTML = `
-            <span>${index + 1}. <span class="player-name">${player.name}</span></span>
-            <span class="player-score">${player.score} puntos</span>
+            <span>${index + 1}. ${trophy}<span class="player-name">${player.name}</span></span>
+            <span class="player-score">${player.score} puntos ${stars}</span>
         `;
         rankingListEl.appendChild(listItem);
     });
 }
-// --- FIN NUEVO ---
+// --- FIN Funciones de Ranking del Cliente ---
 
 
 // --- Event Handlers ---
@@ -387,14 +396,15 @@ saveUsernameBtn.addEventListener('click', () => {
     const avatarUrl = avatarUrlInput.value.trim();
 
     if (username) {
-        // Enviar tanto el nombre como el avatar al servidor
+        console.log('[CLIENTE] Intento de guardar nombre:', username, 'Avatar:', avatarUrl); // DEPURACIÓN CLIENTE
         socket.emit('setPlayerInfo', { playerName: username, avatarUrl: avatarUrl });
-        // Actualizar el nombre y avatar localmente ANTES de que el servidor responda
-        // Esto da una respuesta más rápida en la UI. El estado final se sincronizará con el servidor.
+        
+        // Actualizar el nombre y avatar localmente para una respuesta inmediata en la UI
         myPlayerName = username; 
         myPlayerAvatarUrl = avatarUrl || DEFAULT_CLIENT_AVATAR_URL; 
+        
         updateGameMessage(`¡Hola, ${myPlayerName}! Esperando a otros jugadores...`, 'info');
-        updateUI(); 
+        updateUI(); // Esto cambiará a la pantalla del juego
     } else {
         updateGameMessage('Por favor, ingresa un nombre válido.', 'warning');
     }
@@ -424,7 +434,7 @@ chatInput.addEventListener('keypress', (event) => {
 emojiBtn.addEventListener('click', () => {
     emojiPicker.classList.toggle('hidden');
     if (!emojiPicker.classList.contains('hidden')) {
-        populateEmojiPicker(); // Rellenar los emojis cada vez que se abre
+        populateEmojiPicker(); 
     }
 });
 
@@ -446,24 +456,20 @@ startGameBtn.addEventListener('click', () => {
             });
             selectedCardsForSwap = []; 
             updateGameMessage('Enviando solicitud de intercambio. Esperando a otros jugadores...', 'info');
-            startGameBtn.disabled = true; // Deshabilitar después de enviar el swap para evitar dobles clics
+            startGameBtn.disabled = true; 
             updateUI(); 
         } else {
             const playerInfo = publicPlayerStates[myPlayerId];
             if (playerInfo && playerInfo.readyForPlay) {
-                // Si el jugador ya está listo y quiere iniciar el juego
                 socket.emit('gameStartRequest');
                 updateGameMessage('Intentando iniciar el juego...', 'info');
-                startGameBtn.disabled = true; // Deshabilitar temporalmente
+                startGameBtn.disabled = true; 
             } else {
                 updateGameMessage('Selecciona exactamente dos cartas para intercambiar, o espera a que otros jugadores terminen el setup.', 'warning');
             }
         }
     } else {
-        // Esta parte es para cuando el juego ya está activo y se quiere reiniciar.
-        // La funcionalidad de reiniciar juego no está completamente implementada en el servidor en el código que me pasaste.
-        // Si implementas un reinicio completo, aquí emitirías un evento específico como 'restartGame'.
-        socket.emit('gameStartRequest'); // Por ahora, re-usa gameStartRequest, pero idealmente sería un evento diferente.
+        socket.emit('gameStartRequest'); 
         updateGameMessage('Funcionalidad de reiniciar juego no implementada completamente en el servidor.', 'info');
     }
 });
@@ -478,8 +484,6 @@ takePileBtn.addEventListener('click', () => {
 
 restartGameBtn.addEventListener('click', () => {
     updateGameMessage('Funcionalidad de reiniciar juego no implementada completamente en el servidor.', 'info');
-    // Si implementas un reinicio, aquí emitirías un evento específico como 'restartGame'
-    // socket.emit('restartGame');
 });
 
 
@@ -487,12 +491,28 @@ restartGameBtn.addEventListener('click', () => {
 
 socket.on('connect', () => {
     myPlayerId = socket.id;
-    updateUI(); 
-    // Si el jugador ya tiene un nombre guardado en localStorage, intentar cargarlo
+    console.log('[CLIENTE] Conectado con ID:', myPlayerId); // DEPURACIÓN CLIENTE
+    
+    // Al conectar, intenta cargar el nombre y avatar guardados
     const storedName = localStorage.getItem('playerName');
     const storedAvatar = localStorage.getItem('playerAvatarUrl');
+    
     if (storedName) {
-        // Enviar esta información al servidor inmediatamente al reconectar
+        myPlayerName = storedName; // Establece el nombre localmente de inmediato
+        myPlayerAvatarUrl = storedAvatar || DEFAULT_CLIENT_AVATAR_URL;
         socket.emit('setPlayerInfo', { playerName: storedName, avatarUrl: storedAvatar || DEFAULT_CLIENT_AVATAR_URL });
-        myPlayerName = storedName;
-        myPlayerAvatarUrl = storedAvatar || DEFAULT_C
+        updateGameMessage(`¡Reconectado como ${myPlayerName}!`, 'info');
+    } else {
+        // Si no hay nombre guardado, asegúrate de que se muestre la pantalla de entrada
+        myPlayerName = ''; // Asegura que esté vacío para que updateUI muestre la pantalla de perfil
+    }
+    updateUI(); // Esto mostrará la pantalla correcta (perfil o juego)
+});
+
+socket.on('message', (message, type = 'info') => {
+    console.log(`[CLIENTE] Mensaje del servidor (${type}):`, message); // DEPURACIÓN CLIENTE
+    updateGameMessage(message, type);
+});
+
+socket.on('chatMessage', (data) => {
+    addChatMessage(data.senderName, data.text, data.
