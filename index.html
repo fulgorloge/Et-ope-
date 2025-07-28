@@ -3,53 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Cartas Etíope</title>
+    <title>Juego de Cartas</title>
     <link rel="stylesheet" href="style.css">
-    </head>
+</head>
 <body>
     <div class="game-container">
-        <h1>Juego de Cartas Etíope</h1>
-
-        <div id="game-messages" class="game-messages">
-            ¡Bienvenido a Etíope! Intercambia cartas entre tu mano y tus cartas boca arriba para empezar. Luego, haz clic en 'Confirmar Mano y Empezar'.
-        </div>
+        <h1>Juego de Cartas</h1>
+        <div class="game-messages" id="game-messages"></div>
 
         <div class="player-area player2-area">
             <h2>Jugador 2 (IA)</h2>
-            <div id="player2-hand" class="card-area player-hand player2-hand">
-                </div>
-            <div id="player2-face-up" class="card-area player-face-up player2-face-up">
-                </div>
-            <div id="player2-face-down" class="card-area player-face-down player2-face-down">
-                </div>
+            <h3>Cartas en Mano (<span id="player2-hand-count">0</span>)</h3>
+            <div class="card-area" id="player2-hand"></div>
+            <h3>Cartas Boca Arriba</h3>
+            <div class="card-area" id="player2-face-up"></div>
+            <h3>Cartas Boca Abajo (<span id="player2-face-down-count">0</span>)</h3>
+            <div class="card-area" id="player2-face-down"></div>
         </div>
 
         <div class="game-center-area">
             <div class="deck-and-discard-area">
-                <div class="deck-container">
-                    <div id="deck" class="card-pile deck-pile"></div>
-                    <div id="deck-count" class="card-count">Cartas en Mazo: 0</div>
+                <div class="card-pile deck-pile">
+                    Mazo (<span id="deck-count">0</span>)
                 </div>
-                <div class="discard-container">
-                    <div id="discard-pile" class="card-pile discard-pile"></div>
-                    <div id="discard-count" class="card-count">Cartas en Descarte: 0</div>
+                <div class="card-pile discard-pile">
+                    Descarte (<span id="discard-count">0</span>)
+                    <div id="discard-pile"></div>
                 </div>
             </div>
-
             <div class="game-controls">
-                <button id="main-action-button" class="game-button">Confirmar Mano y Empezar</button>
-                <button id="restart-button" class="game-button restart-button" style="display: none;">Reiniciar Juego</button>
+                <button class="game-button" id="start-button">Iniciar Juego</button>
+                <button class="game-button" id="swap-button" disabled>Intercambiar Cartas</button>
+                <button class="game-button" id="play-button" disabled>Jugar Carta</button>
+                <button class="game-button" id="take-pile-button" disabled>Tomar Descarte</button>
+                <button class="game-button restart-button" id="restart-button">Reiniciar Juego</button>
             </div>
         </div>
 
         <div class="player-area player1-area">
             <h2>Jugador 1</h2>
-            <div id="player1-hand" class="card-area player-hand player1-hand">
-                </div>
-            <div id="player1-face-up" class="card-area player-face-up player1-face-up">
-                </div>
-            <div id="player1-face-down" class="card-area player-face-down player1-face-down">
-                </div>
+            <h3>Cartas en Mano (<span id="player1-hand-count">0</span>)</h3>
+            <div class="card-area" id="player1-hand"></div>
+            <h3>Cartas Boca Arriba</h3>
+            <div class="card-area" id="player1-face-up"></div>
+            <h3>Cartas Boca Abajo (<span id="player1-face-down-count">0</span>)</h3>
+            <div class="card-area" id="player1-face-down"></div>
         </div>
     </div>
 
