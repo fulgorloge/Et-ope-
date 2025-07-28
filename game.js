@@ -178,7 +178,6 @@ function renderUI() {
     renderCardArea(player1FaceDown, player1FaceDownEl, 'player1-face-down', true); // Face down
 
     // Render the current batch in the selection area (only visible during lote selection phase)
-    // IMPORTANT: Ensure this is rendered even if currentVisibleBatch is empty (e.g., after acceptance)
     renderCardArea(currentVisibleBatch, player1LoteSelectionEl, 'player1-lote-selection');
 
 
@@ -335,7 +334,7 @@ function showNextLote() {
     // Ensure we have enough cards to form a batch
     if (player1Hand.length < (currentBatchAttempt + 1) * 3) {
         updateGameMessage('Error interno: No hay suficientes cartas para formar el siguiente lote.', 'error');
-        console.error('Not enough cards in player1Hand for the next batch!');
+        console.error('Not enough cards in player1Hand for the next batch! Player1Hand length:', player1Hand.length);
         return;
     }
 
@@ -502,4 +501,41 @@ function handleTakePile() {
 
 function simulatedPlayTurn() {
     updateGameMessage('Turno del Jugador 2 (IA)...');
-  
+    setTimeout(() => {
+        updateGameMessage('Jugador 2 (IA) ha terminado su turno.');
+        currentPlayer = 1;
+        updateGameMessage('¡Es tu turno, Jugador 1!');
+        playButton.disabled = false;
+        takePileButton.disabled = false;
+    }, 1500);
+}
+
+
+// --- Initialization ---
+function initializeGame() {
+    startButton.addEventListener('click', handleStartGame);
+    swapButton.addEventListener('click', handleSwapCards);
+    playButton.addEventListener('click', handlePlayCard);
+    takePileButton.addEventListener('click', handleTakePile);
+    restartButton.addEventListener('click', handleRestartGame);
+
+    // Lote selection buttons
+    acceptLoteButton.addEventListener('click', handleAcceptLote);
+    rejectLoteButton.addEventListener('click', handleRejectLote);
+    endSetupButton.addEventListener('click', endSetupPhaseForPlayer1); // New event listener for ending setup
+
+
+    // Initial button states
+    startButton.disabled = false;
+    swapButton.disabled = true;
+    playButton.disabled = true;
+    takePileButton.disabled = true;
+    restartButton.disabled = true;
+    acceptLoteButton.disabled = true;
+    rejectLoteButton.disabled = true;
+    endSetupButton.disabled = true;
+
+    updateGameMessage('Presiona "Iniciar Juego" para comenzar una nueva partida.');
+}
+
+document.addEventListener('DOMContentLoaded', initializeGame);
