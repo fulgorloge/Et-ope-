@@ -37,6 +37,10 @@ const player2FaceUpEl = document.getElementById('player2-face-up');
 const player2FaceDownEl = document.getElementById('player2-face-down');
 const discardPileEl = document.getElementById('discard-pile');
 
+// --- NUEVAS REFERENCIAS PARA LOS CONTADORES ---
+const deckCountEl = document.getElementById('deck-count');
+const discardCountEl = document.getElementById('discard-count');
+
 // --- BOTONES: mainActionButton y restartButton ---
 const mainActionButton = document.getElementById('main-action-button'); // Botón principal (Confirmar Mano / Tomar Montón)
 const restartButton = document.getElementById('restart-button'); // Nuevo botón de reiniciar
@@ -87,6 +91,9 @@ function dealInitialCards() {
             players[playerKey].faceDown.push(deck.pop());
         }
     }
+    // ¡Ordenar las manos después de repartir!
+    sortHand(players.player1.hand);
+    sortHand(players.player2.hand);
 }
 
 // 4. Renderizar las Cartas en la UI
@@ -116,6 +123,7 @@ function renderCards() {
         discardPileEl.appendChild(createCardElement(discardPile[discardPile.length - 1], 'discard', 'top'));
     }
     updateButtonStates(); // Actualizar el estado de los botones cada vez que se renderiza
+    updateCardCounts(); // ¡Actualizar contadores de cartas!
 }
 
 // 5. Crear elemento HTML de una carta (con gestión de clics)
@@ -153,7 +161,9 @@ function createCardElement(card, owner, area, isHidden = false) {
                 canClick = true;
             } else if (area === 'faceUp' && p1.hand.length === 0 && p1.faceUp.length > 0) {
                 canClick = true;
-            } else if (area === 'faceDown' && p1.hand.length === 0 && p1.faceUp.length === 0 && deck.length === 0 && p1.faceDown.length > 0) {
+            }
+            // Habilitar clic en cartas boca abajo SOLO si mano y boca arriba están vacías Y el mazo está agotado
+            else if (area === 'faceDown' && p1.hand.length === 0 && p1.faceUp.length === 0 && deck.length === 0 && p1.faceDown.length > 0) {
                 canClick = true;
             }
 
@@ -217,6 +227,10 @@ function handleSetupClick(card, area, cardEl) {
         // Añade la segunda carta al área de la primera
         card1SourceArray.push(card);
 
+        // ¡Ordenar la mano después del intercambio!
+        sortHand(p1.hand);
+        sortHand(p1.faceUp); // Asegurarse de que las faceUp también estén ordenadas si se usan para juego
+
         showMessage("Cartas intercambiadas. Puedes seguir intercambiando o confirmar tu mano.");
         
         // Resetear la selección
@@ -263,7 +277,8 @@ async function playCard(cardToPlay, fromArea, clickedElement = null) {
         showMessage("Debes jugar las cartas de tu mano primero, o no tienes cartas boca arriba.");
         return;
     }
-    if (fromArea === 'faceDown' && (p.hand.length > 0 || p.faceUp.length > 0 || deck.length === 0 || p.faceDown.length === 0)) {
+    // Condición para jugar cartas boca abajo: mano y boca arriba vacías Y mazo agotado
+    if (fromArea === 'faceDown' && (p.hand.length > 0 || p.faceUp.length > 0 || deck.length > 0 || p.faceDown.length === 0)) {
         showMessage("Solo puedes jugar cartas boca abajo si tu mano y tus cartas boca arriba están vacías, y el mazo está agotado.");
         return;
     }
@@ -400,6 +415,25 @@ function getValueNumber(value) {
     return parseInt(value, 10);
 }
 
+// --- NUEVA FUNCIÓN: Ordenar una mano ---
+function sortHand(hand) {
+    hand.sort((a, b) => {
+        const valA = getValueNumber(a.value);
+        const valB = getValueNumber(b.value);
+
+        // Primero ordenar por valor
+        if (valA !== valB) {
+            return valA - valB;
+        }
+
+        // Si los valores son iguales, ordenar por palo para consistencia (opcional, pero bueno)
+        // Puedes ajustar el orden de los palos si lo deseas (Hearts, Diamonds, Clubs, Spades)
+        const suitOrder = ['Clubs', 'Diamonds', 'Hearts', 'Spades', 'None']; // 'None' para Jokers
+        return suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
+    });
+}
+
+
 // 8. Manejar efectos de cartas especiales (10, 2, 7, Trío)
 async function handleSpecialCards(playedCard) {
     // Primero, verificar si la carta jugada es un 2 o un 7
@@ -424,6 +458,7 @@ async function handleSpecialCards(playedCard) {
     if (playedCard.value === '10') {
         showMessage("¡El 10 ha quemado el montón! Turno del siguiente jugador.");
         discardPile = []; // Quema todo el montón
+        updateCardCounts(); // Actualizar contador del descarte
         twoEffectActive = false; // Asegurar que el efecto del 2 o 7 no persiste
         switchTurn(); // El que jugó el 10 pierde su turno
         return; // Salir para no procesar otras reglas en este mismo ciclo
@@ -433,46 +468,70 @@ async function handleSpecialCards(playedCard) {
     if (discardPile.length >= 3) {
         const lastThreeCards = discardPile.slice(-3);
         let potentialTrioValue = null;
-        const nonJokerCards = lastThreeCards.filter(c => c.type !== 'joker' && c.type !== 'joker-chosen');
-
-        if (nonJokerCards.length > 0) {
-            potentialTrioValue = nonJokerCards[0].value;
-        } else if (lastThreeCards.length === 3 && lastThreeCards.every(c => c.type === 'joker' || c.type === 'joker-chosen')) {
-            // Si todas son jokers, el jugador actual (o IA) elige el valor del trío
-            if (currentPlayer === 'player1') {
-                const chosenValue = await askForJokerValue();
-                if (chosenValue) {
-                    potentialTrioValue = chosenValue;
-                } else {
-                    return; // Si el jugador cancela el joker, no hay trío.
-                }
-            } else {
-                potentialTrioValue = values[Math.floor(Math.random() * values.length)]; // IA elige al azar
-            }
+        
+        // Contar la frecuencia de los valores en las últimas tres cartas
+        const valueCounts = {};
+        for(const card of lastThreeCards) {
+            const val = card.type === 'joker' || card.type === 'joker-chosen' ? 'Joker' : card.value;
+            valueCounts[val] = (valueCounts[val] || 0) + 1;
         }
 
-        if (potentialTrioValue) {
-            let isActualTrio = true;
-            for (const card of lastThreeCards) {
-                if (!(card.value === potentialTrioValue || card.type === 'joker' || card.type === 'joker-chosen')) {
-                    isActualTrio = false;
-                    break;
-                }
+        // Determinar si hay un trío
+        let foundTrio = false;
+        // Iterar sobre los valores normales para buscar el trío
+        for (const val of values) { // Recorrer los valores posibles (A,2,3...K)
+            const countNormal = lastThreeCards.filter(c => c.value === val && c.type === 'normal').length;
+            const countJokers = lastThreeCards.filter(c => c.type === 'joker' || c.type === 'joker-chosen').length;
+            
+            if (countNormal + countJokers >= 3 && countNormal > 0) { // Si con los jokers se completa un trío y al menos una es normal
+                potentialTrioValue = val;
+                foundTrio = true;
+                break;
             }
+        }
+        // Caso especial: 3 Jokers
+        if (!foundTrio && lastThreeCards.every(c => c.type === 'joker' || c.type === 'joker-chosen')) {
+             foundTrio = true;
+             if (currentPlayer === 'player1') {
+                 const chosenValue = await askForJokerValue();
+                 if (chosenValue) {
+                     potentialTrioValue = chosenValue;
+                 } else {
+                     return; // Si el jugador cancela el joker, no hay trío.
+                 }
+             } else {
+                 potentialTrioValue = values[Math.floor(Math.random() * values.length)]; // IA elige al azar
+             }
+        }
 
-            if (isActualTrio) {
-                showMessage(`¡Trío de ${potentialTrioValue}s! Quemando todos los ${potentialTrioValue}s de las manos de todos los jugadores.`);
 
-                for (let playerKey in players) {
-                    players[playerKey].hand = players[playerKey].hand.filter(card => {
-                        if (card.value === potentialTrioValue || card.type === 'joker' || card.type === 'joker-chosen') {
-                            return false;
-                        }
-                        return true;
-                    });
-                }
-                renderCards();
+        if (foundTrio && potentialTrioValue) {
+            showMessage(`¡Trío de ${potentialTrioValue}s! Quemando todas las cartas de ese valor.`);
+
+            // Quemar las cartas del montón de descarte (todo el montón)
+            discardPile = [];
+            updateCardCounts(); // Actualizar contador del descarte
+
+            for (let playerKey in players) {
+                const player = players[playerKey];
+                
+                // Filtrar cartas de la mano
+                player.hand = player.hand.filter(card => {
+                    // Una carta se quema si su valor coincide con el trío O es un Joker
+                    return !((card.value === potentialTrioValue && card.type === 'normal') || (card.type === 'joker' || card.type === 'joker-chosen'));
+                });
+
+                // Filtrar cartas boca arriba
+                player.faceUp = player.faceUp.filter(card => {
+                    // Una carta se quema si su valor coincide con el trío O es un Joker
+                    return !((card.value === potentialTrioValue && card.type === 'normal') || (card.type === 'joker' || card.type === 'joker-chosen'));
+                });
+                // ¡Ordenar las manos y cartas boca arriba después de quemar!
+                sortHand(player.hand);
+                sortHand(player.faceUp);
             }
+            renderCards(); // Volver a renderizar para mostrar las cartas quemadas
+            return; // El trío es una acción final para este turno, no seguir con otras comprobaciones
         }
     }
 }
@@ -528,10 +587,19 @@ async function aiPlay() {
     let cardToPlay = null;
     let fromArea = '';
 
-    const findBestPlay = (cards) => {
+    const findBestPlay = (cards, forFaceDown = false) => {
         // Prioridad de la IA: jugar 2s o 7s si puede, luego 10s para quemar, luego cartas normales válidas.
         const specialCards = cards.filter(c => c.value === '2' || c.value === '7' || c.value === '10' || c.type === 'joker');
         const normalCards = cards.filter(c => c.value !== '2' && c.value !== '7' && c.value !== '10' && c.type !== 'joker');
+
+        // Si es para cartas boca abajo, la IA no "sabe" qué tiene, así que solo puede elegir una y probar suerte
+        if (forFaceDown) {
+            // Simplemente selecciona una al azar
+            if (cards.length > 0) {
+                return cards[Math.floor(Math.random() * cards.length)];
+            }
+            return null;
+        }
 
         // Intentar jugar un 2 o 7 primero
         for (let card of specialCards) {
@@ -585,13 +653,13 @@ async function aiPlay() {
             fromArea = 'faceUp';
         }
     }
+    // La IA solo intenta jugar cartas boca abajo si su mano y boca arriba están vacías Y el mazo agotado
     if (!cardToPlay && aiPlayer.hand.length === 0 && aiPlayer.faceUp.length === 0 && deck.length === 0 && aiPlayer.faceDown.length > 0) {
-        // La IA debe intentar jugar una de sus cartas boca abajo al azar.
+        // La IA "revela" una carta boca abajo al azar. No "sabe" lo que es.
         const randomIndex = Math.floor(Math.random() * aiPlayer.faceDown.length);
-        const revealedCard = aiPlayer.faceDown[randomIndex]; // Revelar una al azar
+        const revealedCard = aiPlayer.faceDown[randomIndex]; 
         showMessage(`El Jugador 2 ha revelado una carta boca abajo.`);
 
-        // Si la carta revelada es válida, la juega
         if (isValidPlay(revealedCard, topCard)) {
             cardToPlay = aiPlayer.faceDown.splice(randomIndex, 1)[0]; // Remover la carta jugada
             fromArea = 'faceDown';
@@ -685,8 +753,8 @@ function takePile(player) {
     player.hand = player.hand.concat(discardPile);
     discardPile = [];
     showMessage(`${player === players.player1 ? 'Has' : 'El Jugador 2 ha'} tomado el montón.`);
-    shuffleDeck(player.hand);
-    renderCards();
+    sortHand(player.hand); // ¡Ordenar la mano después de tomar el montón!
+    renderCards(); // Volver a renderizar para actualizar contadores y visualización
     twoEffectActive = false; // Importante: tomar el montón siempre resetea el efecto
     switchTurn(); // El que toma el montón siempre pierde el turno
 }
@@ -695,6 +763,7 @@ function takePile(player) {
 function checkWinCondition() {
     if (gameState !== 'playing') return false;
 
+    // Un jugador gana si su mano, cartas boca arriba Y cartas boca abajo están vacías.
     if (players.player1.hand.length === 0 && players.player1.faceUp.length === 0 && players.player1.faceDown.length === 0) {
         gameState = 'gameOver'; // Establecer el estado del juego
         showMessage("¡Felicidades! ¡Has ganado el juego!");
@@ -719,10 +788,24 @@ function showMessage(msg) {
 function ensureMinHandCards(player) {
     if (gameState !== 'playing') return; 
 
+    // Solo robamos del mazo si no está vacío
     while (player.hand.length < 3 && deck.length > 0) {
         player.hand.push(deck.pop());
     }
+    sortHand(player.hand); // ¡Ordenar la mano después de robar cartas!
+    updateCardCounts(); // Actualizar el contador del mazo al robar
 }
+
+// --- NUEVA FUNCIÓN: Actualizar los contadores de cartas ---
+function updateCardCounts() {
+    if (deckCountEl) {
+        deckCountEl.textContent = `Cartas en Mazo: ${deck.length}`;
+    }
+    if (discardCountEl) {
+        discardCountEl.textContent = `Cartas en Descarte: ${discardPile.length}`;
+    }
+}
+
 
 // --- Gestión de estados de los botones ---
 function updateButtonStates() {
@@ -737,9 +820,7 @@ function updateButtonStates() {
     } else if (gameState === 'playing') {
         if (mainActionButton) { // Verificar antes de usar
             mainActionButton.textContent = "Tomar Montón";
-            // Deshabilitar si es el turno de la IA y no está en un turno extra por un 2/7.
-            // Si twoEffectActive es true y es turno de la IA, ella debe tomar la siguiente acción,
-            // no el jugador.
+            // Deshabilitar si es el turno de la IA o si hay un efecto de 2/7 activo (pues el jugador debe seguir jugando)
             mainActionButton.disabled = (currentPlayer === 'player2' || twoEffectActive);
         }
         if (restartButton) { // Verificar antes de usar
@@ -758,7 +839,7 @@ function updateButtonStates() {
 // --- Inicialización del Juego ---
 function initGame() {
     createDeck();
-    dealInitialCards();
+    dealInitialCards(); // dealInitialCards ahora ordena
     twoEffectActive = false; // Resetear cualquier efecto activo
     selectedSetupCard = null; // Resetear selección de setup
     selectedSetupCardElement = null; // Resetear elemento de selección
@@ -770,6 +851,7 @@ function initGame() {
 
     renderCards(); // Renderizar las cartas para la fase de setup
     updateButtonStates(); // Actualizar el estado de los botones
+    updateCardCounts(); // ¡Llamar al inicio para mostrar los contadores iniciales!
     showMessage("¡Bienvenido a Etíope! Intercambia cartas entre tu mano y tus cartas boca arriba para empezar. Luego, haz clic en 'Confirmar Mano y Empezar'.");
 }
 
