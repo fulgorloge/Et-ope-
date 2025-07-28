@@ -1,511 +1,399 @@
-/* Importar fuentes de Google Fonts para un mejor diseño */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Playfair+Display:wght@700&display=swap');
-
-/* Estilos generales del cuerpo */
 body {
-    font-family: 'Roboto', sans-serif; /* Fuente más moderna y legible */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Alinea al inicio para permitir que el contenido fluya hacia abajo */
+    align-items: center;
     min-height: 100vh;
+    background-color: #333;
     margin: 0;
-    background: linear-gradient(to bottom right, #1a1a2e, #16213e); /* Degradado de fondo */
-    padding: 15px;
+    color: #eee;
+    overflow: auto; /* Allow scrolling if content is too large */
+    padding: 20px;
     box-sizing: border-box;
-    color: #e0e0e0; /* Color de texto general claro */
 }
 
-/* Contenedor principal del juego */
 .game-container {
-    background: linear-gradient(to bottom right, #2c6e49, #1e4d34); /* Degradado verde de mesa */
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Sombra más pronunciada y suave */
-    padding: 25px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
-    max-width: 850px; /* Ancho máximo ligeramente ajustado */
+    background-color: #28a745; /* Green table color */
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    width: 95%;
+    max-width: 1200px;
     box-sizing: border-box;
-    border: 5px solid #4CAF50; /* Borde más llamativo para la mesa */
-    position: relative; /* Para posibles efectos de mesa */
-    overflow: hidden; /* Asegurar que no se salga nada del borde */
 }
-
-/* Patrón sutil para el fondo de la mesa */
-.game-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
-    background-size: 10px 10px;
-    opacity: 0.1;
-    pointer-events: none; /* No interactuable */
-}
-
 
 h1 {
-    font-family: 'Playfair Display', serif; /* Fuente elegante para el título */
-    color: #FFD700; /* Oro */
-    margin-bottom: 25px;
-    text-align: center;
-    font-size: 2.8em; /* Tamaño más grande */
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
-    letter-spacing: 2px; /* Espaciado entre letras */
+    color: #fff;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Mensajes del juego */
 .game-messages {
-    background-color: rgba(255, 255, 255, 0.1); /* Fondo translúcido */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 12px 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    padding: 10px 20px;
     border-radius: 8px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     width: 100%;
     text-align: center;
-    color: #b3e5fc; /* Azul claro */
-    font-weight: bold;
     font-size: 1.1em;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(3px); /* Efecto de desenfoque */
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
-/* Áreas de los jugadores */
-.player-area {
+.game-messages.error {
+    background-color: #dc3545; /* Red for errors */
+}
+
+.game-messages.success {
+    background-color: #28a745; /* Green for success */
+}
+
+.game-area {
     width: 100%;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+.player1-area, .player2-area {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.common-area {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.player1-area h2, .player2-area h2 {
     text-align: center;
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 15px;
 }
 
-.player-area h2 {
-    color: #e0e0e0;
-    margin-bottom: 18px;
-    font-size: 1.8em;
-    letter-spacing: 1px;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+.card-area-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-/* Contenedores de cartas (mano, boca arriba, boca abajo) */
 .card-area {
     display: flex;
     flex-wrap: wrap;
+    gap: 10px;
+    min-height: 120px; /* Adjust based on card size */
+    border: 1px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    padding: 10px;
+    width: 100%;
     justify-content: center;
-    gap: 12px; /* Espacio entre cartas */
-    min-height: 100px; /* Altura mínima */
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 12px;
-    background-color: rgba(0, 0, 0, 0.2); /* Fondo más oscuro */
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3); /* Sombra interior */
+    align-items: center;
+    box-sizing: border-box;
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Estilo de la carta individual (¡MUY PULIDO!) */
+/* Specific styling for lote selection area to make it distinct */
+.player1-lote-selection-wrapper {
+    background-color: rgba(100, 100, 255, 0.1); /* Light blue tint */
+    border: 2px solid #6495ED; /* Cornflower Blue border */
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+.player1-lote-selection-wrapper p {
+    font-weight: bold;
+    color: #ADD8E6; /* Light Blue */
+}
+
+.card-count {
+    font-size: 0.9em;
+    color: #ddd;
+    margin-top: 5px;
+}
+
+.card-area p {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #ddd;
+}
+
 .card {
-    width: 75px; /* Ancho ligeramente ajustado */
-    height: 105px; /* Alto ligeramente ajustado */
-    background: linear-gradient(to bottom right, #ffffff, #f0f0f0); /* Degradado para el frente de la carta */
-    border: 1px solid #c0c0c0;
-    border-radius: 8px; /* Más redondeado */
+    width: 80px; /* Standard card width */
+    height: 110px; /* Standard card height */
+    background-color: #fff;
+    border: 1px solid #555;
+    border-radius: 8px;
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
+    font-size: 1.2em;
     font-weight: bold;
+    color: #000;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4); /* Sombra suave */
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-    user-select: none;
-    position: relative;
-    overflow: hidden;
-    color: #333; /* Color de texto predeterminado para cartas */
+    transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+    user-select: none; /* Prevent text selection on cards */
 }
 
-/* Estilos para el valor en la esquina */
-.card .value-corner {
-    font-family: 'Playfair Display', serif; /* Fuente para valor */
-    font-size: 1.4em;
-    line-height: 1;
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Estilos para el palo en la esquina */
-.card .suit-corner {
-    font-size: 0.9em;
-    line-height: 1;
-    margin-top: -3px; /* Ajuste fino */
-}
-
-/* Contenedor para el valor y el palo en las esquinas */
-.card .corner-top, .card .corner-bottom {
-    position: absolute;
+.card.hidden {
+    background-color: #6a0dad; /* Purple back for hidden cards */
+    border: 1px solid #4a007a;
+    color: transparent; /* Hide rank/suit */
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    padding: 5px; /* Pequeño padding */
-    pointer-events: none; /* Asegura que no interfieran con clics de la carta */
+    font-size: 0; /* Hide any lingering text */
+    background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%),
+                      repeating-linear-gradient(45deg, #7c2bbf 0px, #7c2bbf 5px, transparent 5px, transparent 10px);
+    background-size: 100% 100%, 20px 20px;
+}
+
+.card.hidden::before {
+    content: ''; /* Empty content for pseudo-element */
+    display: block;
+    width: 60%;
+    height: 60%;
+    border: 3px solid #eee; /* Light border pattern */
+    border-radius: 50%; /* Circular pattern */
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    background: radial-gradient(circle at center, #8a2be2 0%, #6a0dad 70%);
+}
+
+
+.card .corner-top,
+.card .corner-bottom {
+    position: absolute;
+    font-size: 0.8em;
+    padding: 3px;
+    line-height: 1;
 }
 
 .card .corner-top {
-    top: 0;
-    left: 0;
+    top: 5px;
+    left: 5px;
 }
 
 .card .corner-bottom {
-    bottom: 0;
-    right: 0;
+    bottom: 5px;
+    right: 5px;
     transform: rotate(180deg);
 }
 
-/* Estilos para el símbolo grande central */
 .card .suit-center {
-    font-size: 3.2em; /* Símbolo central más grande */
+    font-size: 2.5em; /* Larger symbol for center */
     line-height: 1;
-    margin: auto;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Sombra sutil para el símbolo */
 }
 
-/* Ajustes para cartas con múltiples símbolos (2-9) */
-.card.multi-symbol {
+.card .suit-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-    padding: 0;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    width: 60%;
+    height: 60%;
+    justify-items: center;
+    align-content: center;
+    font-size: 1.5em; /* Smaller symbols for grid */
 }
-.card.multi-symbol .corner-top { grid-row: 1; grid-column: 1; align-self: start; justify-self: start; }
-.card.multi-symbol .corner-bottom { grid-row: 3; grid-column: 1; align-self: end; justify-self: end; }
+
+/* Adjustments for specific ranks to fit symbols */
 .card.multi-symbol .suit-grid {
-    grid-row: 2;
-    grid-column: 1;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    align-content: center;
-    gap: 3px; /* Espacio entre los símbolos pequeños */
-    height: 100%;
-    padding: 5px;
-    box-sizing: border-box;
+    align-items: center;
+    gap: 3px;
+    font-size: 1.5em; /* Adjust symbol size for multiple */
 }
-.card.multi-symbol .suit-grid .symbol-small {
-    font-size: 1.3em; /* Símbolos pequeños más visibles */
-    line-height: 1;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.05);
+/* Specific tweaks for ranks with unique symbol layouts if needed (e.g., 7, 8, 9) */
+.card[data-rank="7"] .suit-grid {
+    grid-template-columns: repeat(3, 1fr);
 }
-
-
-.card:hover:not(.disabled):not(.hidden):not(.selected-for-swap) {
-    transform: translateY(-8px) scale(1.06); /* Efecto hover más dinámico */
-    box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5); /* Sombra más grande y difusa */
-}
-
-/* Colores de palos */
-.card.red, .card .red-symbol {
-    color: #e74c3c; /* Rojo vibrante */
-}
-.card, .card .black-symbol {
-    color: #2c3e50; /* Negro oscuro */
-}
-
-/* Cartas ocultas (boca abajo) - Diseño premium */
-.card.hidden {
-    background: linear-gradient(45deg, #4b0082, #6a0dad); /* Degradado morado/azul oscuro */
-    color: transparent;
-    border: 1px solid #7f00ff;
-    border-radius: 8px;
-    cursor: default;
-    /* Patrón más sofisticado */
-    background-image:
-        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%233e006f" opacity="0.8"/><path d="M50 10 L65 40 L90 40 L70 60 L75 90 L50 70 L25 90 L30 60 L10 40 L35 40 Z" fill="%235a0096" opacity="0.6"/></svg>');
-    background-size: cover; /* Cubre toda la carta */
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.7); /* Sombra interior para profundidad */
-}
-.card.hidden:hover {
-    transform: none;
-    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4);
+.card[data-rank="8"] .suit-grid, .card[data-rank="9"] .suit-grid {
+    grid-template-columns: repeat(3, 1fr);
 }
 
 
-/* Estilo para cartas deshabilitadas (no se pueden clickear) */
-.card.disabled {
-    opacity: 0.4; /* Más opaco aún */
-    cursor: not-allowed;
-    pointer-events: none;
-    transform: none;
-    box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+.card .red-symbol {
+    color: red;
 }
 
-/* Estilo para la carta seleccionada en la fase de setup */
+.card .black-symbol {
+    color: black;
+}
+
 .card.selected-for-swap {
-    border: 4px solid #00c3ff; /* Borde cian vibrante */
-    box-shadow: 0 0 25px rgba(0, 195, 255, 0.8);
-    transform: scale(1.1) translateY(-12px); /* Efecto más pronunciado */
-    z-index: 10; /* Asegura que esté por encima de otras cartas */
+    border: 3px solid #ffc107; /* Highlight selected cards with a yellow border */
+    box-shadow: 0 0 15px #ffc107;
 }
 
+.deck-discard {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+}
 
-/* Área central del juego (mazo, descarte, botones) */
-.middle-area { /* Renamed from game-center-area for better structure */
+.deck-area, .discard-area {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 30px;
-    width: 100%;
+    gap: 5px;
 }
 
-.deck-and-discard-area {
+.card-back.deck {
+    width: 80px;
+    height: 110px;
+    background-color: #6a0dad; /* Purple back for the deck */
+    border: 1px solid #4a007a;
+    border-radius: 8px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
     display: flex;
-    justify-content: center;
-    gap: 35px; /* Espacio entre el mazo y el descarte */
-    margin-bottom: 25px;
-    width: 100%;
-}
-
-.card-pile {
-    width: 85px; /* Ancho del montón */
-    height: 115px; /* Alto del montón */
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column; /* To stack text and card */
     justify-content: center;
     align-items: center;
-    font-size: 0.9em;
+    background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%),
+                      repeating-linear-gradient(45deg, #7c2bbf 0px, #7c2bbf 5px, transparent 5px, transparent 10px);
+    background-size: 100% 100%, 20px 20px;
+}
+
+.card-back.deck::before {
+    content: '';
+    display: block;
+    width: 60%;
+    height: 60%;
+    border: 3px solid #eee;
+    border-radius: 50%;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    background: radial-gradient(circle at center, #8a2be2 0%, #6a0dad 70%);
+}
+
+.card-placeholder {
+    width: 80px;
+    height: 110px;
+    border: 1px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     color: #ccc;
-    background-color: rgba(0, 0, 0, 0.25);
-    position: relative;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+    font-size: 0.8em;
 }
 
-.deck-pile {
-    background-color: rgba(76, 175, 80, 0.3); /* Verde oscuro semitransparente */
-    border-color: #8bc34a;
+.discard-area .card {
+    cursor: default; /* Discard pile cards are not clickable by default */
 }
 
-.discard-pile {
-    background-color: rgba(255, 152, 0, 0.3); /* Naranja oscuro semitransparente */
-    border-color: #ff9800;
-}
-
-/* Position the actual card inside the pile for visual effect */
-.card-pile .card {
-    position: absolute; /* Position relative to its parent .card-pile */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%); /* Center the card */
-}
-
-/* Contadores de cartas */
-.card-count { /* This class is not directly used in HTML, but for conceptual styling */
-    font-size: 1em;
-    color: #b3e5fc; /* Azul claro */
-    margin-top: 8px;
-    text-align: center;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
-
-/* Controles del juego (botones) */
 .game-controls {
     display: flex;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
     justify-content: center;
+    margin-top: 10px;
     width: 100%;
-    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
 }
 
-.game-button {
-    padding: 12px 28px;
-    font-size: 1.15em;
-    font-weight: bold;
-    color: #fff;
-    background: linear-gradient(to right, #007bff, #0056b3); /* Degradado azul */
+.game-controls button {
+    padding: 10px 15px;
+    font-size: 1em;
+    background-color: #007bff;
+    color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.2s ease-in-out, transform 0.15s ease-in-out, box-shadow 0.2s ease-in-out;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    transition: background-color 0.2s, transform 0.1s;
 }
 
-.game-button:hover:not(:disabled) {
-    background: linear-gradient(to right, #0056b3, #003d80);
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+.game-controls button:hover:not(:disabled) {
+    background-color: #0056b3;
+    transform: translateY(-2px);
 }
 
-.game-button:disabled {
-    background: #555; /* Gris oscuro */
+.game-controls button:disabled {
+    background-color: #6c757d;
     cursor: not-allowed;
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
-    transform: none;
+    opacity: 0.7;
 }
 
-.restart-button {
-    background: linear-gradient(to right, #dc3545, #a02c3c); /* Degradado rojo */
-}
-
-.restart-button:hover:not(:disabled) {
-    background: linear-gradient(to right, #c82333, #8a1f2b);
-}
-
-/* --- NEW STYLES FOR LOTE SELECTION AND SETUP BUTTONS --- */
-
-/* Section for the Lote Selection (contains cards and buttons) */
-.lote-selection-section {
-    margin-top: 25px; /* Space from Player 1's title */
-    margin-bottom: 25px; /* Space before hand cards */
-    padding: 15px;
-    border: 3px solid #ffeb3b; /* Vibrant yellow border to draw attention */
-    border-radius: 12px;
-    background-color: rgba(255, 235, 59, 0.1); /* Slightly translucent yellow tint */
-    box-shadow: 0 5px 15px rgba(255, 235, 59, 0.3); /* Glowing shadow */
-    text-align: center;
-}
-
-.lote-selection-section h3 {
-    color: #ffeb3b; /* Yellow for the title */
-    margin-bottom: 15px;
-    font-size: 1.6em;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
-}
-
-/* Container for the 3 cards in the current lote */
-.lote-selection-display {
-    min-height: 120px; /* Ensure space for cards */
-    display: flex;
-    justify-content: center;
-    gap: 15px; /* More space between cards in the selection area */
-    padding: 15px;
-    background-color: rgba(0, 0, 0, 0.3); /* Darker background for contrast */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    margin-bottom: 20px;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-}
-
-/* Controls for Lote Selection (Accept/Reject buttons) */
-.lote-controls {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    margin-top: 15px;
-    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
-}
-
-/* Style for the "Accept Lote" button */
-#accept-lote-button {
-    background: linear-gradient(to right, #4CAF50, #2e7d32); /* Green gradient */
-}
-#accept-lote-button:hover:not(:disabled) {
-    background: linear-gradient(to right, #2e7d32, #1b5e20);
-}
-
-/* Style for the "Reject Lote" button */
-#reject-lote-button {
-    background: linear-gradient(to right, #f44336, #d32f2f); /* Red gradient */
-}
-#reject-lote-button:hover:not(:disabled) {
-    background: linear-gradient(to right, #d32f2f, #b71c1c);
-}
-
-/* Style for the "Finalizar Preparación" button */
-#end-setup-button {
-    margin-top: 20px; /* Space above the button */
-    background: linear-gradient(to right, #8e44ad, #9b59b6); /* Purple gradient */
-}
-
-#end-setup-button:hover:not(:disabled) {
-    background: linear-gradient(to right, #9b59b6, #8e44ad);
-}
-
-/* Small adjustment for general card-area to make sections more distinct */
-.player-area .card-section {
-    margin-bottom: 20px; /* Adds space between the hand, face-up, face-down sections */
-}
-
-
-/* Media Queries para responsividad */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    body { padding: 10px; }
-    .game-container { padding: 20px; max-width: 650px; }
-    h1 { font-size: 2.2em; margin-bottom: 20px; }
-    .game-messages { font-size: 1em; padding: 10px 15px; margin-bottom: 20px; }
-    .player-area h2 { font-size: 1.5em; margin-bottom: 15px; }
-    .card-area { min-height: 90px; padding: 10px; gap: 10px; margin-bottom: 12px;}
+    .game-container {
+        flex-direction: column;
+        padding: 15px;
+        width: 100%;
+    }
+
+    .game-area {
+        margin-bottom: 15px;
+        padding: 10px;
+    }
+
+    .common-area {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .card-area {
+        min-height: 100px;
+        padding: 8px;
+    }
 
     .card {
-        width: 68px;
-        height: 95px;
+        width: 70px;
+        height: 100px;
+        font-size: 1em;
     }
-    .card .value-corner { font-size: 1.2em; }
-    .card .suit-corner { font-size: 0.8em; }
-    .card .suit-center { font-size: 2.8em; }
-    .card.multi-symbol .suit-grid .symbol-small { font-size: 1.2em; }
 
-    .deck-and-discard-area { gap: 30px; margin-bottom: 20px; }
-    .card-pile { width: 75px; height: 105px; }
-    /* No card-count specific styling needed as text is part of pile */
-    .game-controls { gap: 15px; }
-    .game-button { padding: 10px 22px; font-size: 1.05em; }
+    .card .suit-center {
+        font-size: 2em;
+    }
 
-    .lote-selection-section {
-        padding: 12px;
-        margin-bottom: 20px;
-    }
-    .lote-selection-section h3 {
-        font-size: 1.4em;
-    }
-    .lote-selection-display {
-        min-height: 100px;
-        padding: 12px;
-        gap: 12px;
-    }
-    .lote-controls {
-        gap: 15px;
+    .game-controls button {
+        padding: 8px 12px;
+        font-size: 0.9em;
     }
 }
 
 @media (max-width: 480px) {
-    body { padding: 8px; }
-    .game-container { padding: 15px; max-width: 100%; border-radius: 10px; }
-    h1 { font-size: 1.8em; margin-bottom: 15px; letter-spacing: 1px;}
-    .game-messages { font-size: 0.9em; padding: 8px 12px; margin-bottom: 15px; }
-    .player-area h2 { font-size: 1.3em; margin-bottom: 12px; }
-    .card-area { min-height: 75px; padding: 8px; gap: 8px; margin-bottom: 10px;}
+    h1 {
+        font-size: 1.8em;
+    }
+
+    .game-messages {
+        font-size: 0.9em;
+        padding: 8px 15px;
+    }
 
     .card {
         width: 60px;
-        height: 85px;
-        border-radius: 6px;
+        height: 90px;
     }
-    .card .value-corner { font-size: 1.1em; padding: 3px;}
-    .card .suit-corner { font-size: 0.7em; }
-    .card .suit-center { font-size: 1.8em; }
-    .card.multi-symbol .suit-grid .symbol-small { font-size: 0.9em; }
 
-    .deck-and-discard-area { flex-direction: column; gap: 20px; margin-bottom: 15px; }
-    .card-pile { width: 70px; height: 95px; }
-    /* No card-count specific styling needed as text is part of pile */
-    .game-controls { flex-direction: column; gap: 10px; }
-    .game-button { padding: 9px 18px; font-size: 0.95em; }
+    .card .corner-top,
+    .card .corner-bottom {
+        font-size: 0.7em;
+    }
 
-    .lote-selection-section {
-        padding: 10px;
-        margin-bottom: 15px;
-    }
-    .lote-selection-section h3 {
-        font-size: 1.2em;
-    }
-    .lote-selection-display {
-        min-height: 85px;
-        padding: 10px;
-        gap: 10px;
-    }
-    .lote-controls {
-        flex-direction: column; /* Stack buttons on smaller screens */
-        gap: 10px;
+    .card .suit-center {
+        font-size: 1.8em;
     }
 }
