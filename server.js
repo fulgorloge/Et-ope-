@@ -2,8 +2,8 @@
 /**
  * @file server.js
  * @description Lógica del servidor para el juego de cartas multijugador usando Node.js y Socket.IO.
- * @author [Tu Nombre o Nombre de tu Compañía]
- * @copyright © 2024 [Tu Nombre o Nombre de tu Compañía]. Todos los derechos reservados.
+ * @author Diego Santiago Cobo Agreda
+ * @copyright © 2024 Fulgor. Todos los derechos reservados.
  */
 
 const express = require('express');
@@ -393,7 +393,7 @@ io.on('connection', (socket) => {
             io.emit('message', `${player.name} jugó un 10 y quemó la pila de descarte!`, 'success');
         }
 
-        // 5. Robar cartas del deck si la mano del jugador tiene < 3 (solo si jugó de la mano o no tiene cartas boca arriba)
+        // 5. Robar cartas del deck si la mano del jugador tiene < 3 (solo si jugó de la mano)
         // NOTA: Si el jugador jugó una carta de boca arriba o boca abajo, y tiene cartas en el mazo,
         // robará hasta tener 3 cartas en la mano ANTES de jugar de boca arriba/abajo.
         // Aquí la lógica es si la mano está vacía y jugó de boca arriba/abajo, no roba inmediatamente.
@@ -456,4 +456,5 @@ io.on('connection', (socket) => {
 
     // Cuando un cliente se desconecta
     socket.on('disconnect', () => {
-        console.log(`[SERVER] Un usuario se ha descone
+        console.log(`[SERVER] Un usuario se ha desconectado. ID: ${socket.id}`);
+        const disconnectedPlayerName = pl
