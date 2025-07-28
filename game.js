@@ -214,7 +214,7 @@ function updateUI() {
         } else {
             startGameBtn.textContent = 'Iniciar Juego'; 
             const playerInfo = publicPlayerStates[myPlayerId];
-            startGameBtn.disabled = !playerInfo || playerInfo.readyForPlay; 
+            startGameBtn.disabled = !playerInfo || !playerInfo.readyForPlay; // Deshabilitar si no ha terminado el setup
         }
     } else {
         startGameBtn.style.display = 'none'; 
@@ -443,19 +443,26 @@ startGameBtn.addEventListener('click', () => {
             });
             selectedCardsForSwap = []; 
             updateGameMessage('Enviando solicitud de intercambio. Esperando a otros jugadores...', 'info');
-            startGameBtn.textContent = 'Esperando otros jugadores...';
-            startGameBtn.disabled = true; 
+            // NO TOCAR EL TEXTO DEL BOTÓN AQUÍ, el servidor actualizará el estado de readyForPlay
+            // y la UI se renderizará en consecuencia.
+            startGameBtn.disabled = true; // Deshabilitar después de enviar el swap
             updateUI(); 
         } else {
             const playerInfo = publicPlayerStates[myPlayerId];
             if (playerInfo && playerInfo.readyForPlay) {
+                // Si el jugador ya está listo y quiere iniciar el juego
                 socket.emit('gameStartRequest');
+                updateGameMessage('Intentando iniciar el juego...', 'info');
+                startGameBtn.disabled = true; // Deshabilitar temporalmente
             } else {
                 updateGameMessage('Selecciona exactamente dos cartas para intercambiar, o espera a que otros jugadores terminen el setup.', 'warning');
             }
         }
     } else {
-        socket.emit('gameStartRequest');
+        // Esta parte es para cuando el juego ya está activo y se quiere reiniciar
+        // Pero la funcionalidad de reiniciar juego no está completamente implementada en el servidor.
+        socket.emit('gameStartRequest'); // Podría ser 'restartGameRequest' en el futuro
+        updateGameMessage('Funcionalidad de reiniciar juego no implementada completamente en el servidor.', 'info');
     }
 });
 
@@ -469,6 +476,8 @@ takePileBtn.addEventListener('click', () => {
 
 restartGameBtn.addEventListener('click', () => {
     updateGameMessage('Funcionalidad de reiniciar juego no implementada completamente en el servidor.', 'info');
+    // Si implementas un reinicio, aquí emitirías un evento específico como 'restartGame'
+    // socket.emit('restartGame');
 });
 
 
@@ -500,30 +509,6 @@ socket.on('currentGameState', (state) => {
 
     myHand = state.playerHand;
     myFaceUp = state.playerFaceUp;
-    myFaceDown = state.faceDown; 
+    myFaceDown = state.playerFaceDown; 
     deckCount = state.deckCount;
-    discardTopCard = state.discardTopCard;
-    discardCount = state.discardCount;
-    currentPlayerTurnId = state.currentPlayerTurnId;
-    gameActive = state.gameActive;
-    setupPhase = state.setupPhase;
-    publicPlayerStates = state.publicPlayerStates; 
-    currentRanking = state.ranking; // NUEVO: Actualizar el ranking
-
-    if (!setupPhase) {
-        selectedCardsForSwap = [];
-        const selectedEls = document.querySelectorAll('.selected-for-swap');
-        selectedEls.forEach(el => el.classList.remove('selected-for-swap'));
-    }
-
-    updateUI();
-});
-
-socket.on('publicGameState', (state) => {
-    // console.log('[CLIENT] Received public game state:', state);
-    deckCount = state.deckCount;
-    discardTopCard = state.discardTopCard;
-    discardCount = state.discardCount;
-    currentPlayerTurnId = state.currentPlayerTurnId;
-    gameActive = state.gameActive;
-    publicPlayerStates = sta
+    discardTopCard = state.dis
