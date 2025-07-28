@@ -3,23 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tu Juego de Cartas</title>
+    <title>Juego de Cartas Multijugador</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <div class="game-controls">
-            <button id="start-button" class="game-button">Iniciar Juego</button>
-            <button id="swap-button" class="game-button">Intercambiar Cartas</button>
-            <button id="play-button" class="game-button">Jugar Carta</button>
-            <button id="take-pile-button" class="game-button">Tomar Descarte</button>
-            <button id="restart-button" class="game-button">Reiniciar Juego</button>
+        <h1>Juego de Cartas Multijugador</h1>
+        <div class="game-messages" id="game-messages">Esperando jugadores...</div>
+
+        <div class="opponent-areas" id="opponent-areas">
+            </div>
+
+        <div class="game-center-area">
+            <div class="deck-and-discard-area">
+                <div class="deck-area">
+                    <div class="card-pile hidden" id="deck"></div>
+                    <span class="card-count" id="deck-count">Mazo: 0</span>
+                </div>
+                <div class="discard-area">
+                    <div class="card-pile" id="discard-pile">
+                        </div>
+                    <span class="card-count" id="discard-count">Descarte: 0</span>
+                </div>
+            </div>
+            <div class="game-controls">
+                <button id="startGameBtn" class="game-button">Iniciar Juego</button>
+                <button id="takePileBtn" class="game-button" disabled>Tomar Descarte</button>
+                <button id="restartGameBtn" class="game-button restart-button" disabled>Reiniciar Juego</button>
+            </div>
+        </div>
+
+        <div class="player-area" id="player-area">
+            <h2>Tu Área (<span id="player-name"></span>)</h2>
+            <h3>Cartas Boca Abajo (Tú)</h3>
+            <div class="card-area" id="player1-face-down">
+                </div>
+            <h3>Cartas Boca Arriba (Tú)</h3>
+            <div class="card-area" id="player1-face-up">
+                </div>
+            <h3>Tu Mano</h3>
+            <div class="card-area" id="player1-hand">
+                </div>
         </div>
     </div>
-
-    <footer class="game-footer">
-        <p>&copy; 2024 [Tu Nombre o Nombre de tu Compañía]. Todos los derechos reservados.</p>
-    </footer>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
