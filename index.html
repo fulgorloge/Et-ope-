@@ -9,8 +9,22 @@
 <body>
     <div class="game-container">
         <h1>Juego de Cartas Multijugador</h1>
+
+        <div id="name-input-area" class="name-input-area">
+            <label for="usernameInput">Ingresa tu nombre:</label>
+            <input type="text" id="usernameInput" placeholder="Tu nombre" maxlength="15">
+            <label for="avatarUrlInput">URL de tu Avatar (opcional):</label>
+            <input type="url" id="avatarUrlInput" placeholder="https://ejemplo.com/tu-avatar.png">
+            <button id="saveUsernameBtn" class="game-button">Guardar Nombre y Avatar</button>
+        </div>
+
         <div class="game-messages" id="game-messages">Esperando jugadores...</div>
 
+        <div class="ranking-container">
+            <h2>🏆 Ranking de Jugadores 🏆</h2>
+            <ul id="ranking-list" class="ranking-list">
+                </ul>
+        </div>
         <div class="opponent-areas" id="opponent-areas">
             </div>
 
@@ -34,7 +48,10 @@
         </div>
 
         <div class="player-area" id="player-area">
-            <h2>Tu Área (<span id="player-name"></span>)</h2>
+            <div class="player-info-header">
+                <img id="player-avatar" class="player-avatar" src="https://via.placeholder.com/50?text=Yo" alt="Tu Avatar">
+                <h2>Tu Área (<span id="player-name"></span>)</h2>
+            </div>
             <h3>Cartas Boca Abajo (Tú)</h3>
             <div class="card-area" id="player1-face-down">
                 </div>
@@ -45,7 +62,21 @@
             <div class="card-area" id="player1-hand">
                 </div>
         </div>
-    </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
+                <div class="emoji-picker-container">
+                    <button id="emojiBtn" class="chat-button">😀</button>
+                    <div id="emojiPicker" class="emoji-picker hidden">
+                        </div>
+                </div>
+                <button id="sendChatBtn" class="chat-button">Enviar</button>
+            </div>
+        </div>
+        </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
