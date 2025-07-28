@@ -1,0 +1,287 @@
+/* Estilos generales del cuerpo */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Alinea al inicio para que el contenido no esté centrado verticalmente si es muy alto */
+    min-height: 100vh; /* Altura mínima de la ventana */
+    margin: 0;
+    background-color: #f0f0f0;
+    padding: 20px; /* Espacio alrededor del contenedor principal */
+    box-sizing: border-box; /* Incluye padding en el tamaño total */
+}
+
+/* Contenedor principal del juego */
+.game-container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 900px; /* Ancho máximo para el juego */
+    box-sizing: border-box;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Mensajes del juego */
+.game-messages {
+    background-color: #e0f7fa;
+    border: 1px solid #b2ebf2;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    width: 100%;
+    text-align: center;
+    color: #00796b;
+    font-weight: bold;
+}
+
+/* Áreas de los jugadores */
+.player-area {
+    width: 100%;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.player-area h2 {
+    color: #555;
+    margin-bottom: 15px;
+}
+
+/* Contenedores de cartas (mano, boca arriba, boca abajo) */
+.card-area {
+    display: flex;
+    flex-wrap: wrap; /* Permite que las cartas salten de línea si no caben */
+    justify-content: center;
+    gap: 10px; /* Espacio entre cartas */
+    min-height: 100px; /* Altura mínima para que el área sea visible */
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+}
+
+/* Estilo de la carta individual */
+.card {
+    width: 70px; /* Ancho de la carta */
+    height: 100px; /* Alto de la carta */
+    background-color: #fff;
+    border: 1px solid #999;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+    user-select: none; /* Evita selección de texto */
+}
+
+.card:hover:not(.disabled):not(.hidden):not(.selected-for-swap) {
+    transform: translateY(-5px);
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.card.red {
+    color: red;
+}
+
+/* Cartas ocultas (boca abajo) */
+.card.hidden {
+    background-color: #666;
+    color: transparent; /* Oculta el texto */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="100" viewBox="0 0 70 100"><rect x="0" y="0" width="70" height="100" fill="%23888" rx="8" ry="8"/><circle cx="35" cy="50" r="15" fill="%23555"/></svg>'); /* Patrón simple */
+    background-size: cover;
+    border: 1px solid #444;
+    cursor: default; /* No se puede hacer clic si está oculta */
+}
+
+.card.hidden:hover {
+    transform: none; /* No hay efecto hover para cartas ocultas */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilo para cartas deshabilitadas (no se pueden clickear) */
+.card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none; /* Deshabilita completamente los eventos de ratón */
+}
+
+/* Estilo para la carta seleccionada en la fase de setup */
+.card.selected-for-swap {
+    border: 3px solid #007bff; /* Borde azul brillante */
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
+    transform: scale(1.05); /* Ligeramente más grande */
+}
+
+
+/* Área central del juego (mazo, descarte, botones) */
+.game-center-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+.deck-and-discard-area {
+    display: flex;
+    justify-content: center;
+    gap: 30px; /* Espacio entre el mazo y el descarte */
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.card-pile {
+    width: 80px; /* Ancho del montón */
+    height: 110px; /* Alto del montón */
+    border: 2px dashed #a0a0a0;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.9em;
+    color: #777;
+    background-color: #eee;
+    position: relative; /* Para posicionar las cartas dentro */
+}
+
+.deck-pile {
+    background-color: #d0e0d0; /* Un color ligeramente diferente para el mazo */
+    border-color: #8bc34a;
+}
+
+.discard-pile {
+    background-color: #f0e0d0; /* Un color ligeramente diferente para el descarte */
+    border-color: #ff9800;
+}
+
+/* Estilo para la carta superior del montón de descarte */
+.discard-pile .card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0; /* Elimina márgenes extra */
+}
+
+/* Contadores de cartas */
+.card-count {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+    text-align: center;
+}
+
+/* Controles del juego (botones) */
+.game-controls {
+    display: flex;
+    gap: 15px; /* Espacio entre botones */
+    justify-content: center;
+    width: 100%;
+}
+
+.game-button {
+    padding: 12px 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.game-button:hover:not(:disabled) {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.game-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.restart-button {
+    background-color: #dc3545; /* Rojo para reiniciar */
+}
+
+.restart-button:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+/* Media Queries para responsividad */
+@media (max-width: 768px) {
+    .game-container {
+        padding: 15px;
+    }
+
+    .card {
+        width: 60px;
+        height: 90px;
+        font-size: 1.3em;
+    }
+
+    .card-area {
+        min-height: 80px;
+        padding: 8px;
+    }
+
+    .game-button {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+
+    .deck-and-discard-area {
+        flex-direction: column; /* Apila el mazo y el descarte en pantallas pequeñas */
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    .card {
+        width: 50px;
+        height: 75px;
+        font-size: 1.1em;
+    }
+
+    .card-area {
+        min-height: 70px;
+        padding: 5px;
+    }
+
+    .game-button {
+        padding: 8px 15px;
+        font-size: 0.9em;
+    }
+
+    .game-controls {
+        flex-direction: column; /* Apila los botones en pantallas muy pequeñas */
+        gap: 10px;
+    }
+}
+
+
