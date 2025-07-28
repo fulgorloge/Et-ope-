@@ -59,7 +59,7 @@ const rejectLoteButton = document.getElementById('reject-lote-button');
 const endSetupButton = document.getElementById('end-setup-button'); // New button to end setup phase
 
 
-// --- Card Class --- (No changes needed here)
+// --- Card Class ---
 class Card {
     constructor(suit, rank) {
         this.suit = suit;
@@ -151,14 +151,11 @@ function dealInitialCards() {
     player2FaceUp = [];
     player2FaceDown = [];
 
-    // Deal 3 face-down, 3 face-up to both players initially
-    // For Player 1, these will be replaced by the 6 cards not chosen in lote selection
+    // Deal 3 face-down, 3 face-up to Player 2
     for (let i = 0; i < 3; i++) {
-        // player1FaceDown.push(deck.pop()); // Removed: these will be populated from the 6 unselected cards
         player2FaceDown.push(deck.pop());
     }
     for (let i = 0; i < 3; i++) {
-        player1FaceUp.push(deck.pop());
         player2FaceUp.push(deck.pop());
     }
     // Deal 9 cards to player 1's temporary hand for the lote selection process
@@ -181,7 +178,9 @@ function renderUI() {
     renderCardArea(player1FaceDown, player1FaceDownEl, 'player1-face-down', true); // Face down
 
     // Render the current batch in the selection area (only visible during lote selection phase)
+    // IMPORTANT: Ensure this is rendered even if currentVisibleBatch is empty (e.g., after acceptance)
     renderCardArea(currentVisibleBatch, player1LoteSelectionEl, 'player1-lote-selection');
+
 
     // Render Player 2's cards (AI - all hidden for now)
     renderCardArea(player2Hand, player2HandEl, 'player2-hand', true); // AI hand hidden
@@ -214,7 +213,7 @@ function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false)
         // Apply click listeners based on the area and phase
         if (loteSelectionPhase && areaId === 'player1-lote-selection') {
             // Cards in the visible batch are not clickable, only accept/reject buttons
-            cardEl.classList.add('selectable-lote-card'); // New class to identify these cards if styled differently
+            cardEl.classList.add('selectable-lote-card');
         } else if (setupPhase && !loteSelectionPhase) { // This is for the Hand <-> Face Up swap
             if (areaId === 'player1-hand') {
                 cardEl.addEventListener('click', (event) => handlePlayerCardClickForSwap(event, 'hand'));
@@ -222,8 +221,7 @@ function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false)
                 cardEl.addEventListener('click', (event) => handlePlayerCardClickForSwap(event, 'faceUp'));
             }
         }
-        // During game phase, cards in hand would be clickable to play
-        // (This part is not yet fully implemented but structure allows it)
+        // During game phase, cards in hand would be clickable to play (logic to be added later)
         // else if (areaId === 'player1-hand') {
         //     cardEl.addEventListener('click', handlePlayerCardClickToPlay);
         // }
@@ -334,8 +332,10 @@ function handleRestartGame() {
 // --- Lote Selection Logic ---
 
 function showNextLote() {
-    if (player1Hand.length < 3) {
-        updateGameMessage('Error: No hay suficientes cartas para formar un lote.', 'error');
+    // Ensure we have enough cards to form a batch
+    if (player1Hand.length < (currentBatchAttempt + 1) * 3) {
+        updateGameMessage('Error interno: No hay suficientes cartas para formar el siguiente lote.', 'error');
+        console.error('Not enough cards in player1Hand for the next batch!');
         return;
     }
 
@@ -361,8 +361,13 @@ function handleAcceptLote() {
     // Determine the 6 cards that were NOT chosen as the final hand
     // These will become the player's face-down cards
     player1FaceDown = []; // Clear any previous (temporary) face-down cards
-    const cardsToMoveToFaceDown = player1Hand.filter(card => !player1FinalHand.some(finalCard => finalCard.id === card.id));
-    player1FaceDown.push(...cardsToMoveToFaceDown);
+    
+    // Filter out the cards that are now in player1FinalHand from the original 9 cards
+    // Note: player1Hand still contains all 9 cards at this point for filtering
+    const allInitialCards = [...player1Hand]; // Make a copy
+    player1FaceDown = allInitialCards.filter(card => 
+        !player1FinalHand.some(finalCard => finalCard.id === card.id)
+    );
 
     player1Hand = []; // Clear the temporary 9-card hand
     currentVisibleBatch = []; // Clear the visible batch
@@ -497,5 +502,4 @@ function handleTakePile() {
 
 function simulatedPlayTurn() {
     updateGameMessage('Turno del Jugador 2 (IA)...');
-    setTimeout(() => {
-        updateGameMessage('Jugador 2 (IA) ha terminado su tur
+  
