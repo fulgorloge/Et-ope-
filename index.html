@@ -3,80 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Cartas Multijugador</title>
+    <title>Juego de Cartas Fulgor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
-        <h1>Juego de Cartas Multijugador</h1>
 
-        <div id="name-input-area" class="name-input-area">
-            <label for="usernameInput">Ingresa tu nombre:</label>
-            <input type="text" id="usernameInput" placeholder="Tu nombre" maxlength="15">
+    <div id="name-input-area" class="screen active">
+        <h1>¡Bienvenido a Fulgor!</h1>
+        <p>Por favor, ingresa tu nombre y una URL de avatar para empezar a jugar.</p>
+        <div class="input-group">
+            <label for="usernameInput">Tu Nombre:</label>
+            <input type="text" id="usernameInput" placeholder="Ej: JugadorPro123" maxlength="15">
+        </div>
+        <div class="input-group">
             <label for="avatarUrlInput">URL de tu Avatar (opcional):</label>
-            <input type="url" id="avatarUrlInput" placeholder="https://ejemplo.com/tu-avatar.png">
-            <button id="saveUsernameBtn" class="game-button">Guardar Nombre y Avatar</button>
+            <input type="url" id="avatarUrlInput" placeholder="Ej: https://ejemplo.com/mi-avatar.png">
         </div>
+        <button id="saveUsernameBtn">Guardar Nombre y Avatar</button>
+        <p class="game-messages" id="game-messages-initial">Ingresa tus datos para unirte.</p>
+    </div>
 
-        <div class="game-messages" id="game-messages">Esperando jugadores...</div>
+    <div id="game-container" class="screen hidden">
+        <h1>Juego de Cartas Fulgor</h1>
+        <p class="game-messages" id="game-messages">Esperando jugadores...</p>
 
-        <div class="ranking-container">
-            <h2>🏆 Ranking de Jugadores 🏆</h2>
-            <ul id="ranking-list" class="ranking-list">
-                </ul>
-        </div>
-        <div class="opponent-areas" id="opponent-areas">
-            </div>
+        <div class="game-layout">
+            <div id="opponent-areas" class="opponent-areas">
+                </div>
 
-        <div class="game-center-area">
-            <div class="deck-and-discard-area">
+            <div class="game-center-area">
                 <div class="deck-area">
-                    <div class="card-pile hidden" id="deck"></div>
-                    <span class="card-count" id="deck-count">Mazo: 0</span>
+                    <div id="deck" class="card-pile"></div>
+                    <span id="deck-count" class="pile-count">Mazo: 0</span>
                 </div>
                 <div class="discard-area">
-                    <div class="card-pile" id="discard-pile">
-                        </div>
-                    <span class="card-count" id="discard-count">Descarte: 0</span>
+                    <div id="discard-pile" class="card-pile"></div>
+                    <span id="discard-count" class="pile-count">Descarte: 0</span>
+                </div>
+                <div class="game-actions">
+                    <button id="startGameBtn">Iniciar Juego</button>
+                    <button id="takePileBtn">Tomar Descarte</button>
+                    <button id="restartGameBtn">Reiniciar Juego</button>
                 </div>
             </div>
-            <div class="game-controls">
-                <button id="startGameBtn" class="game-button">Iniciar Juego</button>
-                <button id="takePileBtn" class="game-button" disabled>Tomar Descarte</button>
-                <button id="restartGameBtn" class="game-button restart-button" disabled>Reiniciar Juego</button>
-            </div>
-        </div>
 
-        <div class="player-area" id="player-area">
-            <div class="player-info-header">
-                <img id="player-avatar" class="player-avatar" src="https://via.placeholder.com/50?text=Yo" alt="Tu Avatar">
-                <h2>Tu Área (<span id="player-name"></span>)</h2>
+            <div class="player-area">
+                <div class="player-info">
+                    <img id="player-avatar" class="player-avatar" src="https://via.placeholder.com/50?text=Yo" alt="Tu Avatar">
+                    <h2 id="player-name">Tu Nombre</h2>
+                </div>
+                <h3>Tu Mano:</h3>
+                <div id="player1-hand" class="player-hand card-area"></div>
+                <h3>Cartas Boca Arriba:</h3>
+                <div id="player1-face-up" class="player-face-up card-area"></div>
+                <h3>Cartas Boca Abajo:</h3>
+                <div id="player1-face-down" class="player-face-down card-area"></div>
             </div>
-            <h3>Cartas Boca Abajo (Tú)</h3>
-            <div class="card-area" id="player1-face-down">
-                </div>
-            <h3>Cartas Boca Arriba (Tú)</h3>
-            <div class="card-area" id="player1-face-up">
-                </div>
-            <h3>Tu Mano</h3>
-            <div class="card-area" id="player1-hand">
-                </div>
         </div>
 
         <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">
-                </div>
+            <h3>Chat del Juego</h3>
+            <div id="chat-messages" class="chat-messages"></div>
             <div class="chat-input-area">
                 <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
-                <div class="emoji-picker-container">
-                    <button id="emojiBtn" class="chat-button">😀</button>
-                    <div id="emojiPicker" class="emoji-picker hidden">
-                        </div>
-                </div>
-                <button id="sendChatBtn" class="chat-button">Enviar</button>
+                <button id="emojiBtn">😀</button>
+                <div id="emojiPicker" class="emoji-picker hidden"></div>
+                <button id="sendChatBtn">Enviar</button>
             </div>
         </div>
+
+        <div class="ranking-container">
+            <h3>Ranking de Jugadores</h3>
+            <ul id="ranking-list" class="ranking-list">
+                </ul>
         </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
