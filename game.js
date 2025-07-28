@@ -1,11 +1,10 @@
 // --- Game State Variables ---
 let deck = [];
 let discardPile = [];
-let player1Hand = [];
+let player1Hand = []; // This will temporarily hold all 9 initial cards for the lote selection
+let player1FinalHand = []; // This will be the 3 cards chosen after the lote selection
 let player1FaceUp = [];
-let player1FaceDown = [];
-let player1SwapZone = []; // This zone now receives the cards that end up face-down (from the "full interchange")
-let player1ExchangeSelection = []; // Holds the 3 cards from the hand that the player chose to potentially send face-down
+let player1FaceDown = []; // These will be the 6 cards not chosen as the final hand
 
 let player2Hand = [];
 let player2FaceUp = [];
@@ -14,14 +13,11 @@ let player2FaceDown = [];
 let currentPlayer = 1;
 let gameStarted = false;
 let setupPhase = true;
+let loteSelectionPhase = true; // New phase for the 3-lote selection
+let currentBatchAttempt = 0; // 0: initial, 1: first, 2: second, 3: third (final)
+let currentVisibleBatch = []; // Stores the 3 cards currently shown to the player for selection
 
-// This will now strictly manage the two cards selected for the 'full interchange'
-let selectedCardsForFullInterchange = {
-    cardToKeepInHand: null, // Card chosen from player1ExchangeSelection (to move to player1Hand)
-    cardFromHandToFaceDown: null // Card chosen from player1Hand (to move to player1FaceDown)
-};
-
-// For the original Hand <-> Face Up swap
+// For the original Hand <-> Face Up swap (after lote selection)
 let selectedCardsForHandFaceUpSwap = {
     hand: null,
     faceUp: null
@@ -36,11 +32,9 @@ const player1FaceUpEl = document.getElementById('player1-face-up');
 const player1FaceDownEl = document.getElementById('player1-face-down');
 const player1FaceDownCountEl = document.getElementById('player1-face-down-count');
 
-const player1SwapZoneEl = document.getElementById('player1-swap-container');
-const player1SwapCountEl = document.getElementById('player1-swap-count');
-
-const player1ExchangeSelectionEl = document.getElementById('player1-exchange-selection-container');
-const player1ExchangeSelectionCountEl = document.getElementById('player1-exchange-selection-count');
+// New element for showing the current batch during lote selection
+const player1LoteSelectionEl = document.getElementById('player1-lote-selection');
+const player1LoteSelectionCountEl = document.getElementById('player1-lote-selection-count');
 
 
 const player2HandEl = document.getElementById('player2-hand');
@@ -54,14 +48,16 @@ const discardCountEl = document.getElementById('discard-count');
 const discardPileEl = document.getElementById('discard-pile');
 
 const startButton = document.getElementById('start-button');
-const swapButton = document.getElementById('swap-button'); // Intercambiar Mano/Boca Arriba
+const swapButton = document.getElementById('swap-button'); // Intercambiar Mano/Boca Arriba (after lote selection)
 const playButton = document.getElementById('play-button');
 const takePileButton = document.getElementById('take-pile-button');
 const restartButton = document.getElementById('restart-button');
-const confirmFullSwapButton = document.getElementById('confirm-full-swap-button'); // Botón para el "intercambio completo"
 
-const selectFirstThreeButton = document.getElementById('select-first-three-button');
-const selectSecondThreeButton = document.getElementById('select-second-three-button');
+// New buttons for lote selection
+const acceptLoteButton = document.getElementById('accept-lote-button');
+const rejectLoteButton = document.getElementById('reject-lote-button');
+const endSetupButton = document.getElementById('end-setup-button'); // New button to end setup phase
+
 
 // --- Card Class --- (No changes needed here)
 class Card {
@@ -146,41 +142,46 @@ function shuffleDeck(array) {
 
 function dealInitialCards() {
     // Clear previous hands
-    player1Hand = [];
+    player1Hand = []; // This will temporarily hold all 9 cards for initial selection
+    player1FinalHand = []; // This will be the actual hand for gameplay
     player1FaceUp = [];
-    player1FaceDown = [];
-    player1SwapZone = [];
-    player1ExchangeSelection = [];
+    player1FaceDown = []; // This will hold the 6 cards not chosen in the lote selection
+
     player2Hand = [];
     player2FaceUp = [];
     player2FaceDown = [];
 
-    // Deal 3 face-down, 3 face-up, 6 hand cards to player 1
+    // Deal 3 face-down, 3 face-up to both players initially
+    // For Player 1, these will be replaced by the 6 cards not chosen in lote selection
     for (let i = 0; i < 3; i++) {
-        player1FaceDown.push(deck.pop());
+        // player1FaceDown.push(deck.pop()); // Removed: these will be populated from the 6 unselected cards
         player2FaceDown.push(deck.pop());
     }
     for (let i = 0; i < 3; i++) {
         player1FaceUp.push(deck.pop());
         player2FaceUp.push(deck.pop());
     }
-    for (let i = 0; i < 6; i++) { // Deal 6 cards to player 1's hand for 'second three' option
+    // Deal 9 cards to player 1's temporary hand for the lote selection process
+    for (let i = 0; i < 9; i++) {
         player1Hand.push(deck.pop());
-        player2Hand.push(deck.pop()); // AI also gets 6 for consistency (can be adjusted)
     }
-    // Player 1's hand can be sorted to make 'first three' and 'second three' consistent
-    player1Hand.sort((a, b) => a.value - b.value); // Example: sort by value
+    // AI also gets 9 for consistency (can be adjusted)
+    for (let i = 0; i < 9; i++) {
+        player2Hand.push(deck.pop());
+    }
+
+    // Sort player1Hand for consistent batch presentation (optional, but good for testing)
+    player1Hand.sort((a, b) => a.value - b.value);
 }
 
 function renderUI() {
     // Render Player 1's cards
-    renderCardArea(player1Hand, player1HandEl, 'player1-hand');
+    renderCardArea(player1FinalHand, player1HandEl, 'player1-hand'); // Player's actual hand for gameplay
     renderCardArea(player1FaceUp, player1FaceUpEl, 'player1-face-up');
     renderCardArea(player1FaceDown, player1FaceDownEl, 'player1-face-down', true); // Face down
-    renderCardArea(player1SwapZone, player1SwapZoneEl, 'player1-swap-zone', true); // Face down until game end or specific reveal
 
-    // Render the new exchange selection zone
-    renderCardArea(player1ExchangeSelection, player1ExchangeSelectionEl, 'player1-exchange-selection-zone');
+    // Render the current batch in the selection area (only visible during lote selection phase)
+    renderCardArea(currentVisibleBatch, player1LoteSelectionEl, 'player1-lote-selection');
 
     // Render Player 2's cards (AI - all hidden for now)
     renderCardArea(player2Hand, player2HandEl, 'player2-hand', true); // AI hand hidden
@@ -188,10 +189,9 @@ function renderUI() {
     renderCardArea(player2FaceDown, player2FaceDownEl, 'player2-face-down', true); // AI face down hidden
 
     // Update counts
-    player1HandCountEl.textContent = player1Hand.length;
+    player1HandCountEl.textContent = player1FinalHand.length; // Count of final hand
     player1FaceDownCountEl.textContent = player1FaceDown.length;
-    player1SwapCountEl.textContent = player1SwapZone.length;
-    player1ExchangeSelectionCountEl.textContent = player1ExchangeSelection.length;
+    player1LoteSelectionCountEl.textContent = currentVisibleBatch.length; // Count of current batch
     player2HandCountEl.textContent = player2Hand.length;
     player2FaceDownCountEl.textContent = player2FaceDown.length;
     deckCountEl.textContent = deck.length;
@@ -212,13 +212,14 @@ function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false)
         cardEl.dataset.area = areaId;
 
         // Apply click listeners based on the area and phase
-        if (setupPhase) {
-            if (areaId === 'player1-hand' || areaId === 'player1-face-up') {
-                // These are for the original Hand <-> Face Up swap
-                cardEl.addEventListener('click', (event) => handlePlayerCardClick(event, 'hand-faceup-swap'));
-            } else if (areaId === 'player1-exchange-selection-zone') {
-                // This is for selecting the card to keep in hand from the temporary zone
-                cardEl.addEventListener('click', (event) => handlePlayerCardClick(event, 'full-interchange-selection-from-exchange-zone'));
+        if (loteSelectionPhase && areaId === 'player1-lote-selection') {
+            // Cards in the visible batch are not clickable, only accept/reject buttons
+            cardEl.classList.add('selectable-lote-card'); // New class to identify these cards if styled differently
+        } else if (setupPhase && !loteSelectionPhase) { // This is for the Hand <-> Face Up swap
+            if (areaId === 'player1-hand') {
+                cardEl.addEventListener('click', (event) => handlePlayerCardClickForSwap(event, 'hand'));
+            } else if (areaId === 'player1-face-up') {
+                cardEl.addEventListener('click', (event) => handlePlayerCardClickForSwap(event, 'faceUp'));
             }
         }
         // During game phase, cards in hand would be clickable to play
@@ -230,22 +231,20 @@ function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false)
 
         elementContainer.appendChild(cardEl);
 
-        // Add 'selected-for-swap' class if the card is currently selected
-        if (areaId === 'player1-hand' && selectedCardsForHandFaceUpSwap.hand && selectedCardsForHandFaceUpSwap.hand.id === card.id) {
-            cardEl.classList.add('selected-for-swap');
-        } else if (areaId === 'player1-face-up' && selectedCardsForHandFaceUpSwap.faceUp && selectedCardsForHandFaceUpSwap.faceUp.id === card.id) {
-            cardEl.classList.add('selected-for-swap');
-        } else if (areaId === 'player1-exchange-selection-zone' && selectedCardsForFullInterchange.cardToKeepInHand && selectedCardsForFullInterchange.cardToKeepInHand.id === card.id) {
-            cardEl.classList.add('selected-for-swap');
-        } else if (areaId === 'player1-hand' && selectedCardsForFullInterchange.cardFromHandToFaceDown && selectedCardsForFullInterchange.cardFromHandToFaceDown.id === card.id) {
-            cardEl.classList.add('selected-for-swap');
+        // Add 'selected-for-swap' class if the card is currently selected for Hand <-> Face Up swap
+        if (!loteSelectionPhase) { // Only highlight if we're in the swap phase
+            if (areaId === 'player1-hand' && selectedCardsForHandFaceUpSwap.hand && selectedCardsForHandFaceUpSwap.hand.id === card.id) {
+                cardEl.classList.add('selected-for-swap');
+            } else if (areaId === 'player1-face-up' && selectedCardsForHandFaceUpSwap.faceUp && selectedCardsForHandFaceUpSwap.faceUp.id === card.id) {
+                cardEl.classList.add('selected-for-swap');
+            }
         }
     });
 }
 
 function updateGameMessage(message, type = 'info') {
     gameMessages.textContent = message;
-    gameMessages.className = 'game-messages';
+    gameMessages.className = 'game-messages'; // Reset classes
     gameMessages.classList.add(type);
 }
 
@@ -255,21 +254,29 @@ function handleStartGame() {
     if (gameStarted) return;
     gameStarted = true;
     setupPhase = true;
-    updateGameMessage('¡Juego iniciado! Primero, elige si quieres enviar las primeras 3 o las segundas 3 cartas de tu mano a la zona de intercambio temporal.');
+    loteSelectionPhase = true; // Start in lote selection phase
+    currentBatchAttempt = 0; // Reset attempt counter
 
     deck = createDeck();
     shuffleDeck(deck);
     dealInitialCards();
-    renderUI();
+    showNextLote(); // Show the first batch
+
+    updateGameMessage('¡Juego iniciado! Elige tu primer lote de 3 cartas.');
 
     startButton.disabled = true;
-    swapButton.disabled = false; // Original swap (hand <-> face-up) enabled
-    selectFirstThreeButton.disabled = false; // Enable group selection buttons
-    selectSecondThreeButton.disabled = false;
-    confirmFullSwapButton.disabled = true; // Disabled until selection is made
+    // Disable all other buttons initially
+    swapButton.disabled = true;
     playButton.disabled = true;
     takePileButton.disabled = true;
+    endSetupButton.disabled = true; // Disable until ready to end setup
     restartButton.disabled = false;
+
+    // Enable lote selection buttons
+    acceptLoteButton.disabled = false;
+    rejectLoteButton.disabled = false;
+
+    renderUI();
 }
 
 function handleRestartGame() {
@@ -277,17 +284,18 @@ function handleRestartGame() {
     deck = [];
     discardPile = [];
     player1Hand = [];
+    player1FinalHand = [];
     player1FaceUp = [];
     player1FaceDown = [];
-    player1SwapZone = [];
-    player1ExchangeSelection = [];
     player2Hand = [];
     player2FaceUp = [];
     player2FaceDown = [];
     currentPlayer = 1;
     gameStarted = false;
     setupPhase = true;
-    selectedCardsForFullInterchange = { cardToKeepInHand: null, cardFromHandToFaceDown: null };
+    loteSelectionPhase = true;
+    currentBatchAttempt = 0;
+    currentVisibleBatch = [];
     selectedCardsForHandFaceUpSwap = { hand: null, faceUp: null };
 
 
@@ -295,8 +303,7 @@ function handleRestartGame() {
     player1HandEl.innerHTML = '';
     player1FaceUpEl.innerHTML = '';
     player1FaceDownEl.innerHTML = '';
-    player1SwapZoneEl.innerHTML = '';
-    player1ExchangeSelectionEl.innerHTML = '';
+    player1LoteSelectionEl.innerHTML = ''; // Clear lote selection area
     player2HandEl.innerHTML = '';
     player2FaceUpEl.innerHTML = '';
     player2FaceDownEl.innerHTML = '';
@@ -305,8 +312,7 @@ function handleRestartGame() {
     // Update counts
     player1HandCountEl.textContent = '0';
     player1FaceDownCountEl.textContent = '0';
-    player1SwapCountEl.textContent = '0';
-    player1ExchangeSelectionCountEl.textContent = '0';
+    player1LoteSelectionCountEl.textContent = '0';
     player2HandCountEl.textContent = '0';
     player2FaceDownCountEl.textContent = '0';
     deckCountEl.textContent = '0';
@@ -317,147 +323,116 @@ function handleRestartGame() {
     // Reset button states
     startButton.disabled = false;
     swapButton.disabled = true;
-    confirmFullSwapButton.disabled = true;
     playButton.disabled = true;
     takePileButton.disabled = true;
     restartButton.disabled = true;
-    selectFirstThreeButton.disabled = true;
-    selectSecondThreeButton.disabled = true;
+    acceptLoteButton.disabled = true;
+    rejectLoteButton.disabled = true;
+    endSetupButton.disabled = true;
 }
 
-// --- Main Player Card Click Handler (now unified) ---
-function handlePlayerCardClick(event, clickType) {
-    if (!setupPhase) {
-        console.log('Game phase card click - not implemented yet');
+// --- Lote Selection Logic ---
+
+function showNextLote() {
+    if (player1Hand.length < 3) {
+        updateGameMessage('Error: No hay suficientes cartas para formar un lote.', 'error');
+        return;
+    }
+
+    currentBatchAttempt++;
+    // Get the next 3 cards from the player1Hand (which holds all 9 initial cards)
+    currentVisibleBatch = player1Hand.slice((currentBatchAttempt - 1) * 3, currentBatchAttempt * 3);
+
+    if (currentBatchAttempt === 3) {
+        updateGameMessage('Este es tu TERCER y ÚLTIMO intento. ¡Debes quedarte con este lote!');
+        acceptLoteButton.textContent = 'Aceptar Lote Final';
+        rejectLoteButton.disabled = true; // Can't reject the last one
+    } else {
+        updateGameMessage(`Mostrando Lote ${currentBatchAttempt}. ¿Aceptar o Rechazar?`);
+        acceptLoteButton.textContent = 'Aceptar Lote';
+        rejectLoteButton.disabled = false;
+    }
+    renderUI();
+}
+
+function handleAcceptLote() {
+    player1FinalHand = [...currentVisibleBatch]; // Set this batch as the player's final hand
+    
+    // Determine the 6 cards that were NOT chosen as the final hand
+    // These will become the player's face-down cards
+    player1FaceDown = []; // Clear any previous (temporary) face-down cards
+    const cardsToMoveToFaceDown = player1Hand.filter(card => !player1FinalHand.some(finalCard => finalCard.id === card.id));
+    player1FaceDown.push(...cardsToMoveToFaceDown);
+
+    player1Hand = []; // Clear the temporary 9-card hand
+    currentVisibleBatch = []; // Clear the visible batch
+
+    updateGameMessage(`¡Has aceptado el Lote ${currentBatchAttempt}! Tu mano final está lista. Ahora, puedes intercambiar cartas de tu mano con tus cartas boca arriba.`, 'success');
+    endLoteSelectionPhase(); // Transition to next setup phase
+    renderUI();
+}
+
+function handleRejectLote() {
+    if (currentBatchAttempt < 3) {
+        showNextLote();
+    } else {
+        // This case should not be reachable if rejectLoteButton is disabled for the 3rd attempt
+        updateGameMessage('No puedes rechazar el último lote.', 'error');
+    }
+    renderUI();
+}
+
+function endLoteSelectionPhase() {
+    loteSelectionPhase = false;
+    // Disable lote selection buttons
+    acceptLoteButton.disabled = true;
+    rejectLoteButton.disabled = true;
+
+    // Enable Hand <-> Face Up swap button and End Setup button
+    swapButton.disabled = false;
+    endSetupButton.disabled = false;
+
+    // Setup phase continues for the Hand <-> Face Up swap
+    updateGameMessage('Fase de selección de lote completada. Ahora puedes intercambiar cartas de tu mano con tus cartas boca arriba. Cuando termines, haz clic en "Finalizar Preparación".');
+}
+
+// --- Hand <-> Face Up Swap Logic (After Lote Selection) ---
+function handlePlayerCardClickForSwap(event, areaType) {
+    // Only allow clicks if not in lote selection, but still in general setup
+    if (!setupPhase || loteSelectionPhase) {
         return;
     }
 
     const clickedCardEl = event.currentTarget;
     const cardId = clickedCardEl.dataset.id;
-    const cardArea = clickedCardEl.dataset.area;
-
     let targetCard = null;
-    let targetCollection = null; // The array where the card currently resides
 
-    // Determine the card and its current collection
-    if (cardArea === 'player1-hand') {
-        targetCollection = player1Hand;
-    } else if (cardArea === 'player1-face-up') {
-        targetCollection = player1FaceUp;
-    } else if (cardArea === 'player1-exchange-selection-zone') {
-        targetCollection = player1ExchangeSelection;
-    }
-
-    targetCard = targetCollection.find(c => c.id === cardId);
-    if (!targetCard) return;
-
-    // --- Logic for Hand <-> Face Up Swap selection ---
-    if (clickType === 'hand-faceup-swap') {
-        if (player1ExchangeSelection.length > 0) { // If cards are already in the exchange selection zone, disable this swap
-            updateGameMessage('Ya has movido cartas a la Zona de Selección de Intercambio. Completa ese proceso o reinicia.', 'error');
-            return;
-        }
-
-        if (cardArea === 'player1-hand') {
-            if (selectedCardsForHandFaceUpSwap.hand && selectedCardsForHandFaceUpSwap.hand.id === cardId) {
-                selectedCardsForHandFaceUpSwap.hand = null;
-            } else {
-                selectedCardsForHandFaceUpSwap.hand = targetCard;
-            }
-        } else if (cardArea === 'player1-face-up') {
-            if (selectedCardsForHandFaceUpSwap.faceUp && selectedCardsForHandFaceUpSwap.faceUp.id === cardId) {
-                selectedCardsForHandFaceUpSwap.faceUp = null;
-            } else {
-                selectedCardsForHandFaceUpSwap.faceUp = targetCard;
-            }
-        }
-        updateGameMessage(
-            `Seleccionadas para Intercambio (Mano/Boca Arriba): Mano: ${selectedCardsForHandFaceUpSwap.hand ? selectedCardsForHandFaceUpSwap.hand.rank + selectedCardsForHandFaceUpSwap.hand.getSuitSymbol() : 'Ninguna'}, Boca Arriba: ${selectedCardsForHandFaceUpSwap.faceUp ? selectedCardsForHandFaceUpSwap.faceUp.rank + selectedCardsForHandFaceUpSwap.faceUp.getSuitSymbol() : 'Ninguna'}`
-        );
-
-    }
-    // --- Logic for Full Interchange Selection (selecting which card from exchange zone to keep) ---
-    else if (clickType === 'full-interchange-selection-from-exchange-zone') {
-        if (player1ExchangeSelection.length === 0) {
-            updateGameMessage('No hay cartas en la Zona de Selección de Intercambio para elegir.', 'error');
-            return;
-        }
-        if (selectedCardsForFullInterchange.cardToKeepInHand && selectedCardsForFullInterchange.cardToKeepInHand.id === cardId) {
-            selectedCardsForFullInterchange.cardToKeepInHand = null;
+    // Clear previous selections for this type of swap if a new card of the same type is clicked
+    if (areaType === 'hand') {
+        targetCard = player1FinalHand.find(c => c.id === cardId);
+        if (selectedCardsForHandFaceUpSwap.hand && selectedCardsForHandFaceUpSwap.hand.id === cardId) {
+            selectedCardsForHandFaceUpSwap.hand = null; // Deselect
         } else {
-            selectedCardsForFullInterchange.cardToKeepInHand = targetCard;
+            selectedCardsForHandFaceUpSwap.hand = targetCard; // Select
         }
-        updateGameMessage(`Carta seleccionada para permanecer en la mano: ${selectedCardsForFullInterchange.cardToKeepInHand ? selectedCardsForFullInterchange.cardToKeepInHand.rank + selectedCardsForFullInterchange.cardToKeepInHand.getSuitSymbol() : 'Ninguna'}. Ahora, selecciona una carta de tu mano para enviar boca abajo.`);
-
-        // Additionally, enable hand cards for selection for 'cardFromHandToFaceDown'
-        // This is handled by renderCardArea's click listener.
-    }
-    // --- Logic for Full Interchange Selection (selecting which card from HAND to send face down) ---
-    else if (clickType === 'full-interchange-selection-from-hand') {
-        if (player1ExchangeSelection.length === 0) {
-            updateGameMessage('Primero selecciona un grupo de cartas para la Zona de Selección de Intercambio.', 'error');
-            return;
-        }
-        if (!selectedCardsForFullInterchange.cardToKeepInHand) {
-            updateGameMessage('Primero selecciona la carta que quieres mantener de la Zona de Selección de Intercambio.', 'error');
-            return;
-        }
-
-        if (selectedCardsForFullInterchange.cardFromHandToFaceDown && selectedCardsForFullInterchange.cardFromHandToFaceDown.id === cardId) {
-            selectedCardsForFullInterchange.cardFromHandToFaceDown = null;
+    } else if (areaType === 'faceUp') {
+        targetCard = player1FaceUp.find(c => c.id === cardId);
+        if (selectedCardsForHandFaceUpSwap.faceUp && selectedCardsForHandFaceUpSwap.faceUp.id === cardId) {
+            selectedCardsForHandFaceUpSwap.faceUp = null; // Deselect
         } else {
-            selectedCardsForFullInterchange.cardFromHandToFaceDown = targetCard;
+            selectedCardsForHandFaceUpSwap.faceUp = targetCard; // Select
         }
-        updateGameMessage(`Carta de la mano para enviar boca abajo: ${selectedCardsForFullInterchange.cardFromHandToFaceDown ? selectedCardsForFullInterchange.cardFromHandToFaceDown.rank + selectedCardsForFullInterchange.cardFromHandToFaceDown.getSuitSymbol() : 'Ninguna'}. ¡Listo para confirmar!`);
     }
-
+    updateGameMessage(
+        `Seleccionadas para Intercambio (Mano/Boca Arriba): Mano: ${selectedCardsForHandFaceUpSwap.hand ? selectedCardsForHandFaceUpSwap.hand.rank + selectedCardsForHandFaceUpSwap.hand.getSuitSymbol() : 'Ninguna'}, Boca Arriba: ${selectedCardsForHandFaceUpSwap.faceUp ? selectedCardsForHandFaceUpSwap.faceUp.rank + selectedCardsForHandFaceUpSwap.faceUp.getSuitSymbol() : 'Ninguna'}`
+    );
     renderUI(); // Re-render to update selection highlights
 }
 
-// --- Lógica para seleccionar grupo de 3 cartas de la mano ---
-function handleSelectGroupForExchange(groupType) {
-    if (!setupPhase || player1ExchangeSelection.length > 0) {
-        updateGameMessage('Ya has seleccionado cartas para el intercambio, o no estás en la fase de preparación.', 'error');
-        return;
-    }
 
-    let cardsToMove = [];
-    if (groupType === 'first-three') {
-        if (player1Hand.length < 3) {
-            updateGameMessage('No tienes al menos 3 cartas en la mano para seleccionar las primeras 3.', 'error');
-            return;
-        }
-        // Take the first 3 cards and remove them from player1Hand
-        cardsToMove = player1Hand.splice(0, 3);
-    } else if (groupType === 'second-three') {
-        // Assuming player1Hand has been sorted, the 'second three' would be the next 3 after the first 3.
-        // If hand has 6 cards, indices 0,1,2 are first three, indices 3,4,5 are second three.
-        if (player1Hand.length < 6) {
-            updateGameMessage('Necesitas al menos 6 cartas en la mano para seleccionar las segundas 3.', 'error');
-            return;
-        }
-        // Take cards from index 3 (the 4th card) for 3 cards
-        cardsToMove = player1Hand.splice(3, 3);
-    }
-
-    if (cardsToMove.length === 3) {
-        player1ExchangeSelection.push(...cardsToMove); // Add the 3 cards to the temporary exchange selection zone
-        updateGameMessage(`Has movido 3 cartas a la Zona de Selección de Intercambio. Ahora, haz clic en UNA de esas 3 para decidir cuál quieres que se quede en tu mano.`);
-
-        selectFirstThreeButton.disabled = true;
-        selectSecondThreeButton.disabled = true;
-        // confirmFullSwapButton will be enabled after both cards are selected
-        renderUI();
-    } else {
-        updateGameMessage('Error al seleccionar las cartas. Asegúrate de tener suficientes cartas en la mano.', 'error');
-    }
-}
-
-
-// Original swap function: between Hand and Face-Up cards
 function handleSwapCards() {
-    if (!setupPhase) {
-        updateGameMessage('Solo puedes intercambiar cartas durante la fase de preparación.', 'error');
+    if (!setupPhase || loteSelectionPhase) {
+        updateGameMessage('Solo puedes intercambiar cartas de mano/boca arriba después de seleccionar tu lote final.', 'error');
         return;
     }
 
@@ -469,80 +444,33 @@ function handleSwapCards() {
         return;
     }
 
-    const handIndex = player1Hand.findIndex(c => c.id === handCard.id);
+    const handIndex = player1FinalHand.findIndex(c => c.id === handCard.id);
     const faceUpIndex = player1FaceUp.findIndex(c => c.id === faceUpCard.id);
 
     if (handIndex > -1 && faceUpIndex > -1) {
-        [player1Hand[handIndex], player1FaceUp[faceUpIndex]] = [player1FaceUp[faceUpIndex], player1Hand[handIndex]];
-        updateGameMessage(`¡Cartas ${handCard.rank}${handCard.getSuitSymbol()} y ${faceUpCard.rank}${faceUpCard.getSuitSymbol()} intercambiadas!`);
+        // Perform the swap
+        [player1FinalHand[handIndex], player1FaceUp[faceUpIndex]] = [player1FaceUp[faceUpIndex], player1FinalHand[handIndex]];
+        updateGameMessage(`¡Cartas ${handCard.rank}${handCard.getSuitSymbol()} y ${faceUpCard.rank}${faceUpCard.getSuitSymbol()} intercambiadas! Puedes hacer más intercambios o presionar 'Finalizar Preparación'.`);
     } else {
         updateGameMessage('Error al encontrar las cartas seleccionadas.', 'error');
     }
 
+    // Clear selections after swap
     selectedCardsForHandFaceUpSwap.hand = null;
     selectedCardsForHandFaceUpSwap.faceUp = null;
     renderUI();
 }
 
-// --- NEW FUNCTION: Handle the "Full Interchange" ---
-function handleFullInterchange() {
-    if (!setupPhase) {
-        updateGameMessage('Este tipo de intercambio solo se puede realizar en la fase de preparación.', 'error');
-        return;
-    }
-
-    const cardToKeepInHand = selectedCardsForFullInterchange.cardToKeepInHand;
-    const cardFromHandToFaceDown = selectedCardsForFullInterchange.cardFromHandToFaceDown;
-
-    if (player1ExchangeSelection.length !== 3) {
-        updateGameMessage('La Zona de Selección de Intercambio debe contener exactamente 3 cartas antes de confirmar.', 'error');
-        return;
-    }
-
-    if (!cardToKeepInHand || !cardFromHandToFaceDown) {
-        updateGameMessage('Para el "Intercambio Completo", debes seleccionar: 1) una carta de la Zona de Selección de Intercambio (para quedártela) y 2) una carta de tu Mano (para enviarla boca abajo).', 'error');
-        return;
-    }
-
-    const exchangeSelectionIndex = player1ExchangeSelection.findIndex(c => c.id === cardToKeepInHand.id);
-    const handIndex = player1Hand.findIndex(c => c.id === cardFromHandToFaceDown.id);
-
-    if (exchangeSelectionIndex === -1 || handIndex === -1) {
-        updateGameMessage('Error interno al procesar las cartas seleccionadas para el intercambio completo.', 'error');
-        return;
-    }
-
-    // STEP 1: Move the chosen card from player1ExchangeSelection to player1Hand
-    player1Hand.push(player1ExchangeSelection.splice(exchangeSelectionIndex, 1)[0]);
-
-    // STEP 2: Move the *remaining two* cards from player1ExchangeSelection to player1FaceDown
-    // player1ExchangeSelection now only has the two cards that weren't selected to be kept.
-    player1FaceDown.push(...player1ExchangeSelection.splice(0, player1ExchangeSelection.length)); // Splice all remaining (should be 2)
-
-    // STEP 3: Move the chosen card from player1Hand to player1FaceDown
-    player1FaceDown.push(player1Hand.splice(handIndex, 1)[0]);
-
-    updateGameMessage(`¡Intercambio completo realizado! La carta ${cardToKeepInHand.rank}${cardToKeepInHand.getSuitSymbol()} volvió a tu mano. Las otras 2 cartas de la Zona de Selección y la carta ${cardFromHandToFaceDown.rank}${cardFromHandToFaceDown.getSuitSymbol()} de tu mano ahora están boca abajo.`);
-
-    // Clear selections
-    selectedCardsForFullInterchange.cardToKeepInHand = null;
-    selectedCardsForFullInterchange.cardFromHandToFaceDown = null;
-    player1ExchangeSelection = []; // Clear the temporary zone
-    renderUI();
-
-    endSetupPhaseForPlayer1();
-}
-
 
 function endSetupPhaseForPlayer1() {
     setupPhase = false;
-    updateGameMessage('Fase de preparación terminada. ¡Es tu turno de jugar!');
+    updateGameMessage('Fase de preparación terminada. ¡Es tu turno de jugar!', 'success');
 
     // Disable all setup-related buttons
     swapButton.disabled = true;
-    confirmFullSwapButton.disabled = true;
-    selectFirstThreeButton.disabled = true;
-    selectSecondThreeButton.disabled = true;
+    acceptLoteButton.disabled = true;
+    rejectLoteButton.disabled = true;
+    endSetupButton.disabled = true;
 
     // Enable game-play buttons
     playButton.disabled = false;
@@ -570,38 +498,4 @@ function handleTakePile() {
 function simulatedPlayTurn() {
     updateGameMessage('Turno del Jugador 2 (IA)...');
     setTimeout(() => {
-        updateGameMessage('Jugador 2 (IA) ha terminado su turno.');
-        currentPlayer = 1;
-        updateGameMessage('¡Es tu turno, Jugador 1!');
-        playButton.disabled = false;
-        takePileButton.disabled = false;
-    }, 1500);
-}
-
-
-// --- Initialization ---
-function initializeGame() {
-    startButton.addEventListener('click', handleStartGame);
-    swapButton.addEventListener('click', handleSwapCards);
-    confirmFullSwapButton.addEventListener('click', handleFullInterchange);
-    playButton.addEventListener('click', handlePlayCard);
-    takePileButton.addEventListener('click', handleTakePile);
-    restartButton.addEventListener('click', handleRestartGame);
-
-    selectFirstThreeButton.addEventListener('click', () => handleSelectGroupForExchange('first-three'));
-    selectSecondThreeButton.addEventListener('click', () => handleSelectGroupForExchange('second-three'));
-
-
-    startButton.disabled = false;
-    swapButton.disabled = true;
-    confirmFullSwapButton.disabled = true;
-    playButton.disabled = true;
-    takePileButton.disabled = true;
-    restartButton.disabled = true;
-    selectFirstThreeButton.disabled = true;
-    selectSecondThreeButton.disabled = true;
-
-    updateGameMessage('Presiona "Iniciar Juego" para comenzar una nueva partida.');
-}
-
-document.addEventListener('DOMContentLoaded', initializeGame);
+        updateGameMessage('Jugador 2 (IA) ha terminado su tur
