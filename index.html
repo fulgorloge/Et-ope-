@@ -9,71 +9,76 @@
 <body>
     <div class="game-container">
         <h1>Juego de Cartas</h1>
-        <p class="game-messages" id="game-messages">Presiona "Iniciar Juego" para comenzar una nueva partida.</p>
 
-        <div class="player-area player2-area">
+        <div id="game-messages" class="game-messages">Presiona "Iniciar Juego" para comenzar una nueva partida.</div>
+
+        <div class="game-area player2-area">
             <h2>Jugador 2 (IA)</h2>
-            <h3>Cartas en Mano (<span id="player2-hand-count">0</span>)</h3>
-            <div class="card-area card-container" id="player2-hand"></div>
-            <h3>Cartas Boca Arriba</h3>
-            <div class="card-area card-container" id="player2-face-up"></div>
-            <h3>Cartas Boca Abajo (<span id="player2-face-down-count">0</span>)</h3>
-            <div class="card-area card-container" id="player2-face-down"></div>
+            <div class="card-area-wrapper">
+                <div class="card-area player2-hand" id="player2-hand"></div>
+                <div class="card-count" id="player2-hand-count">0</div>
+                <p>Cartas en Mano (IA)</p>
+            </div>
+            <div class="card-area-wrapper">
+                <div class="card-area player2-face-up" id="player2-face-up"></div>
+                <p>Cartas Boca Arriba (IA)</p>
+            </div>
+            <div class="card-area-wrapper">
+                <div class="card-area player2-face-down" id="player2-face-down"></div>
+                <div class="card-count" id="player2-face-down-count">0</div>
+                <p>Cartas Boca Abajo (IA)</p>
+            </div>
         </div>
 
-        ---
-
-        <div class="middle-area">
-            <div class="deck-and-discard-area">
-                <div class="card-pile deck-pile">
-                    Mazo (<span id="deck-count">0</span>)
-                    <div id="deck" class="card-container">
-                        <div class="card hidden"></div> </div>
+        <div class="game-area common-area">
+            <div class="deck-discard">
+                <div class="deck-area">
+                    <div class="card-back deck" id="deck"></div>
+                    <div class="card-count" id="deck-count">0</div>
+                    <p>Mazo</p>
                 </div>
-                <div class="card-pile discard-pile">
-                    Descarte (<span id="discard-count">0</span>)
-                    <div id="discard-pile" class="card-container">
-                        </div>
+                <div class="discard-area">
+                    <div class="card-placeholder" id="discard-pile"></div>
+                    <div class="card-count" id="discard-count">0</div>
+                    <p>Descarte</p>
                 </div>
             </div>
+
             <div class="game-controls">
-                <button class="game-button" id="start-button">Iniciar Juego</button>
-                <button class="game-button" id="play-button" disabled>Jugar Carta</button>
-                <button class="game-button" id="take-pile-button" disabled>Tomar Descarte</button>
-                <button class="game-button restart-button" id="restart-button">Reiniciar Juego</button>
+                <button id="start-button">Iniciar Juego</button>
+                <button id="restart-button">Reiniciar Juego</button>
+                <button id="accept-lote-button" disabled>Aceptar Lote</button>
+                <button id="reject-lote-button" disabled>Rechazar Lote</button>
+                <button id="swap-button" disabled>Intercambiar Cartas</button>
+                <button id="end-setup-button" disabled>Finalizar Preparación</button>
+                <button id="play-button" disabled>Jugar Carta</button>
+                <button id="take-pile-button" disabled>Tomar Descarte</button>
             </div>
         </div>
 
-        ---
-
-        <div class="player-area player1-area">
+        <div class="game-area player1-area">
             <h2>Jugador 1</h2>
-
-            <div class="card-section lote-selection-section">
-                <h3>Lote de Selección (<span id="player1-lote-selection-count">0</span>)</h3>
-                <div id="player1-lote-selection" class="card-container lote-selection-display">
-                    </div>
-                <div class="lote-controls">
-                    <button class="game-button" id="accept-lote-button" disabled>Aceptar Lote</button>
-                    <button class="game-button" id="reject-lote-button" disabled>Rechazar Lote</button>
-                </div>
+            
+            <div class="card-area-wrapper player1-lote-selection-wrapper">
+                <div class="card-area player1-lote-selection" id="player1-lote-selection"></div>
+                <div class="card-count" id="player1-lote-selection-count">0</div>
+                <p>Selección de Lote (3)</p>
             </div>
 
-            <div class="card-section">
-                <h3>Cartas en Mano (<span id="player1-hand-count">0</span>)</h3>
-                <div class="card-container" id="player1-hand"></div>
+            <div class="card-area-wrapper">
+                <div class="card-area player1-hand" id="player1-hand"></div>
+                <div class="card-count" id="player1-hand-count">0</div>
+                <p>Cartas en Mano (3)</p>
             </div>
-            <div class="card-section">
-                <h3>Cartas Boca Arriba</h3>
-                <div class="card-container" id="player1-face-up"></div>
+            <div class="card-area-wrapper">
+                <div class="card-area player1-face-up" id="player1-face-up"></div>
+                <p>Cartas Boca Arriba (3)</p>
             </div>
-            <div class="card-section">
-                <h3>Cartas Boca Abajo (<span id="player1-face-down-count">0</span>)</h3>
-                <div class="card-container" id="player1-face-down"></div>
+            <div class="card-area-wrapper">
+                <div class="card-area player1-face-down" id="player1-face-down"></div>
+                <div class="card-count" id="player1-face-down-count">0</div>
+                <p>Cartas Boca Abajo (3)</p>
             </div>
-
-            <button class="game-button" id="swap-button" disabled>Intercambiar Mano/Boca Arriba</button>
-            <button class="game-button" id="end-setup-button" disabled>Finalizar Preparación</button>
         </div>
     </div>
 
