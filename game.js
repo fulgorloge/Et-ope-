@@ -4,7 +4,7 @@ let discardPile = [];
 let player1Hand = []; // This will temporarily hold all 9 initial cards for the lote selection
 let player1FinalHand = []; // This will be the 3 cards chosen after the lote selection
 let player1FaceUp = []; // Player 1's 3 face-up cards
-let player1FaceDown = []; // Player 1's 6 face-down cards
+let player1FaceDown = []; // Player 1's 3 face-down cards
 
 let player2Hand = []; // AI's hand (hidden)
 let player2FaceUp = []; // AI's face-up cards (visible)
@@ -92,6 +92,7 @@ class Card {
         const cardDiv = document.createElement('div');
         cardDiv.classList.add('card');
         cardDiv.dataset.id = this.id;
+        cardDiv.dataset.rank = this.rank; // Add rank to dataset for specific styling if needed
 
         if (isFaceDown) {
             cardDiv.classList.add('hidden'); // This class hides the card content
@@ -144,8 +145,8 @@ function dealInitialCards() {
     // Clear previous hands
     player1Hand = []; // This will temporarily hold all 9 cards for initial selection
     player1FinalHand = []; // This will be the actual hand for gameplay (3 cards)
-    player1FaceUp = []; // Player 1's 3 face-up cards
-    player1FaceDown = []; // Player 1's 6 face-down cards (these are set AFTER lote selection)
+    player1FaceUp = []; // Player 1's 3 face-up cards (set AFTER lote selection)
+    player1FaceDown = []; // Player 1's 3 face-down cards (set AFTER lote selection)
 
     player2Hand = [];
     player2FaceUp = [];
@@ -181,6 +182,8 @@ function renderUI() {
     renderCardArea(player1FaceDown, player1FaceDownEl, 'player1-face-down', true); // Player 1's face-down cards (hidden)
 
     // Render the current batch in the selection area (only visible during lote selection phase)
+    // The player1LoteSelectionEl should only contain cards if loteSelectionPhase is true AND currentVisibleBatch has cards.
+    // If loteSelectionPhase is false, it should be empty or hidden via CSS (already handled by display property).
     renderCardArea(currentVisibleBatch, player1LoteSelectionEl, 'player1-lote-selection', false); // Lote selection cards are visible
 
 
@@ -203,6 +206,24 @@ function renderUI() {
     if (discardPile.length > 0) {
         discardPileEl.appendChild(discardPile[discardPile.length - 1].createCardElement());
     }
+
+    // Conditional display of lote selection area and hand/face-up areas
+    const loteSelectionWrapper = document.querySelector('.player1-lote-selection-wrapper');
+    const player1HandWrapper = player1HandEl.closest('.card-area-wrapper');
+    const player1FaceUpWrapper = player1FaceUpEl.closest('.card-area-wrapper');
+    const player1FaceDownWrapper = player1FaceDownEl.closest('.card-area-wrapper');
+
+    if (loteSelectionPhase) {
+        loteSelectionWrapper.style.display = 'flex';
+        player1HandWrapper.style.display = 'none'; // Hide player 1's final hand during lote selection
+        player1FaceUpWrapper.style.display = 'none'; // Hide player 1's face-up during lote selection
+        player1FaceDownWrapper.style.display = 'none'; // Hide player 1's face-down during lote selection
+    } else {
+        loteSelectionWrapper.style.display = 'none'; // Hide lote selection area
+        player1HandWrapper.style.display = 'flex'; // Show player 1's final hand
+        player1FaceUpWrapper.style.display = 'flex'; // Show player 1's face-up
+        player1FaceDownWrapper.style.display = 'flex'; // Show player 1's face-down
+    }
 }
 
 function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false) {
@@ -215,7 +236,6 @@ function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false)
         // Apply click listeners based on the area and phase
         if (loteSelectionPhase && areaId === 'player1-lote-selection') {
             // Cards in the visible batch are not clickable, only accept/reject buttons
-            // Add a class for styling if needed, but no click listener for individual cards here
             cardEl.classList.add('selectable-lote-card');
         } else if (setupPhase && !loteSelectionPhase) { // This is for the Hand <-> Face Up swap
             if (areaId === 'player1-hand') {
@@ -228,7 +248,6 @@ function renderCardArea(cardArray, elementContainer, areaId, isFaceDown = false)
         // else if (areaId === 'player1-hand') {
         //     cardEl.addEventListener('click', handlePlayerCardClickToPlay);
         // }
-
 
         elementContainer.appendChild(cardEl);
 
@@ -330,12 +349,15 @@ function handleRestartGame() {
     acceptLoteButton.disabled = true;
     rejectLoteButton.disabled = true;
     endSetupButton.disabled = true;
+
+    renderUI(); // Render the UI to reflect reset state (e.g., hide lote selection)
 }
 
 // --- Lote Selection Logic ---
 
 function showNextLote() {
     // Ensure we have enough cards to form a batch
+    // player1Hand contains the original 9 cards
     if (player1Hand.length < (currentBatchAttempt + 1) * 3) {
         updateGameMessage('Error interno: No hay suficientes cartas para formar el siguiente lote.', 'error');
         console.error('Not enough cards in player1Hand for the next batch! Player1Hand length:', player1Hand.length);
@@ -362,21 +384,21 @@ function handleAcceptLote() {
     player1FinalHand = [...currentVisibleBatch]; // Set this batch as the player's final hand
     
     // Determine the 6 cards that were NOT chosen as the final hand
-    // These will become the player's face-up and face-down cards
+    // These will become the player's face-up (3) and face-down (3) cards
     let rejectedCards = [];
-    const allInitialCards = [...player1Hand]; // Make a copy of the original 9 cards
+    const allInitialCards = [...player1Hand]; // Make a copy of the original 9 cards from dealInitialCards()
     
     rejectedCards = allInitialCards.filter(card => 
         !player1FinalHand.some(finalCard => finalCard.id === card.id)
     );
 
     // Now, from these 6 rejected cards, 3 go to player1FaceUp and 3 to player1FaceDown
-    shuffleDeck(rejectedCards); // Shuffle the 6 cards to randomize face-up/down
+    shuffleDeck(rejectedCards); // Shuffle the 6 cards to randomize face-up/down distribution
     
     player1FaceUp = rejectedCards.splice(0, 3); // Take the first 3 for face-up
     player1FaceDown = rejectedCards; // The remaining 3 are face-down
 
-    player1Hand = []; // Clear the temporary 9-card hand
+    player1Hand = []; // Clear the temporary 9-card hand, as they've been distributed
     currentVisibleBatch = []; // Clear the visible batch (lote selection is over)
 
     updateGameMessage(`¡Has aceptado el Lote ${currentBatchAttempt}! Tu mano final está lista. Ahora, puedes intercambiar cartas de tu mano con tus cartas boca arriba.`, 'success');
@@ -406,6 +428,7 @@ function endLoteSelectionPhase() {
 
     // Setup phase continues for the Hand <-> Face Up swap
     updateGameMessage('Fase de selección de lote completada. Ahora puedes intercambiar cartas de tu mano con tus cartas boca arriba. Cuando termines, haz clic en "Finalizar Preparación".');
+    renderUI(); // Re-render to update visibility of card areas
 }
 
 // --- Hand <-> Face Up Swap Logic (After Lote Selection) ---
@@ -487,8 +510,68 @@ function endSetupPhaseForPlayer1() {
     // Enable game-play buttons
     playButton.disabled = false;
     takePileButton.disabled = false;
+    
+    // Simulate AI's turn immediately after player 1 finishes setup (optional)
+    // simulatedPlayTurn(); 
 }
 
 
 // --- Main Game Turn Logic (To be expanded) ---
-function han
+function handlePlayCard() {
+    if (currentPlayer !== 1 || setupPhase) {
+        updateGameMessage('No es tu turno o aún estás en fase de preparación.', 'error');
+        return;
+    }
+    updateGameMessage('Jugador 1 va a jugar una carta (lógica pendiente)...');
+}
+
+function handleTakePile() {
+    if (currentPlayer !== 1 || setupPhase) {
+        updateGameMessage('No es tu turno o aún estás en fase de preparación.', 'error');
+        return;
+    }
+    updateGameMessage('Jugador 1 va a tomar el descarte (lógica pendiente)...');
+}
+
+function simulatedPlayTurn() {
+    updateGameMessage('Turno del Jugador 2 (IA)...');
+    // Implement AI logic here
+    setTimeout(() => {
+        updateGameMessage('Jugador 2 (IA) ha terminado su turno.');
+        currentPlayer = 1; // It's Player 1's turn again
+        updateGameMessage('¡Es tu turno, Jugador 1!');
+        playButton.disabled = false;
+        takePileButton.disabled = false;
+    }, 1500);
+}
+
+
+// --- Initialization ---
+function initializeGame() {
+    startButton.addEventListener('click', handleStartGame);
+    swapButton.addEventListener('click', handleSwapCards);
+    playButton.addEventListener('click', handlePlayCard);
+    takePileButton.addEventListener('click', handleTakePile);
+    restartButton.addEventListener('click', handleRestartGame);
+
+    // Lote selection buttons
+    acceptLoteButton.addEventListener('click', handleAcceptLote);
+    rejectLoteButton.addEventListener('click', handleRejectLote);
+    endSetupButton.addEventListener('click', endSetupPhaseForPlayer1); // New event listener for ending setup
+
+
+    // Initial button states
+    startButton.disabled = false;
+    swapButton.disabled = true;
+    playButton.disabled = true;
+    takePileButton.disabled = true;
+    restartButton.disabled = true;
+    acceptLoteButton.disabled = true;
+    rejectLoteButton.disabled = true;
+    endSetupButton.disabled = true;
+
+    updateGameMessage('Presiona "Iniciar Juego" para comenzar una nueva partida.');
+    renderUI(); // Initial render to set up visibility correctly
+}
+
+document.addEventListener('DOMContentLoaded', initializeGame);
