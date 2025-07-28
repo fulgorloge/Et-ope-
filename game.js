@@ -21,10 +21,37 @@ const startGameBtn = document.getElementById('startGameBtn');
 const takePileBtn = document.getElementById('takePileBtn');
 const restartGameBtn = document.getElementById('restartGameBtn');
 const playerNameEl = document.getElementById('player-name');
+const playerAvatarEl = document.getElementById('player-avatar');
 const opponentAreasEl = document.getElementById('opponent-areas');
 
+// Para la gestión de nombres de usuario y avatares
+const nameInputArea = document.getElementById('name-input-area');
+const usernameInput = document.getElementById('usernameInput');
+const avatarUrlInput = document.getElementById('avatarUrlInput');
+const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+
+// Elementos del DOM para el Chat
+const chatMessagesEl = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chatInput');
+const sendChatBtn = document.getElementById('sendChatBtn');
+const emojiBtn = document.getElementById('emojiBtn');
+const emojiPicker = document.getElementById('emojiPicker');
+
+// --- NUEVO: Elementos del DOM para el Ranking ---
+const rankingListEl = document.getElementById('ranking-list');
+// --- FIN NUEVO ---
+
+
+const EMOJIS = [
+    '😀', '😂', '🥳', '👍', '👎', '❤️', '🔥', '👏', '🤔', '😎',
+    '🤩', '😜', '😭', '🤯', '💯', '🙏', '🤞', '✨', '🚀', '⭐'
+];
+
+
 // --- Game State (Client Side) ---
-let myPlayerId = null; // Se establecerá cuando el servidor envíe el primer estado
+let myPlayerId = null; 
+let myPlayerName = ''; 
+let myPlayerAvatarUrl = ''; 
 let myHand = [];
 let myFaceUp = [];
 let myFaceDown = [];
@@ -33,8 +60,13 @@ let deckCount = 0;
 let discardCount = 0;
 let currentPlayerTurnId = null;
 let gameActive = false;
-let setupPhase = true; // Inicialmente estamos en fase de setup
-let selectedCardsForSwap = []; // Almacena hasta dos IDs de cartas seleccionadas para el swap
+let setupPhase = true; 
+let selectedCardsForSwap = []; 
+let publicPlayerStates = {}; 
+let currentRanking = []; // NUEVO: Para almacenar el ranking
+
+
+const DEFAULT_CLIENT_AVATAR_URL = 'https://via.placeholder.com/50?text=Yo'; 
 
 // --- Card Class (Client-side, for rendering) ---
 class Card {
@@ -42,7 +74,7 @@ class Card {
         this.suit = suit;
         this.rank = rank;
         this.id = `${suit}-${rank}`;
-        this.value = this.getCardValue(); // No estrictamente necesario en el cliente, pero útil para mostrar
+        this.value = this.getCardValue(); 
     }
 
     getSuitSymbol() {
@@ -69,11 +101,10 @@ class Card {
         return this.suit === 'hearts' || this.suit === 'diamonds';
     }
 
-    // Crea el elemento HTML de la carta
     createCardElement(isHidden = false) {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
-        cardEl.dataset.cardId = this.id; // Guarda el ID para fácil referencia
+        cardEl.dataset.cardId = this.id; 
 
         if (isHidden) {
             cardEl.classList.add('hidden');
@@ -90,23 +121,21 @@ class Card {
 // --- UI Rendering Functions ---
 
 function renderCards(cardArray, containerEl, isHidden = false, isInteractive = false, isFaceDownArea = false) {
-    containerEl.innerHTML = ''; // Limpiar el contenedor
+    containerEl.innerHTML = ''; 
     cardArray.forEach(cardData => {
         const card = new Card(cardData.suit, cardData.rank);
         const cardEl = card.createCardElement(isHidden);
         
         if (isInteractive && !cardEl.classList.contains('hidden')) {
-            cardEl.classList.add('interactive-card'); // Para efectos visuales o para indicar clicable
+            cardEl.classList.add('interactive-card'); 
             cardEl.addEventListener('click', (event) => handleCardClick(event, cardData.id, containerEl.id));
         }
 
         if (isFaceDownArea && isHidden && setupPhase) {
-            // Permitir seleccionar cartas ocultas SOLO en fase de setup para intercambio
             cardEl.classList.add('interactive-card');
             cardEl.addEventListener('click', (event) => handleCardClick(event, cardData.id, containerEl.id));
         }
         
-        // Mantener el estado de selección para el swap
         if (selectedCardsForSwap.includes(card.id)) {
             cardEl.classList.add('selected-for-swap');
         }
@@ -117,30 +146,44 @@ function renderCards(cardArray, containerEl, isHidden = false, isInteractive = f
 
 function updateGameMessage(message, type = 'info') {
     gameMessagesEl.textContent = message;
-    gameMessagesEl.className = 'game-messages'; // Resetear clases
-    gameMessagesEl.classList.add(type); // Añadir el tipo de mensaje (info, warning, error, success)
+    gameMessagesEl.className = 'game-messages'; 
+    gameMessagesEl.classList.add(type); 
 }
 
 function updateUI() {
-    // Actualizar mano del jugador
-    // Cartas de la mano solo interactivas si es mi turno y el juego está activo
-    renderCards(myHand, playerHandEl, false, myPlayerId === currentPlayerTurnId && gameActive && myHand.length > 0);
+    // Esconder o mostrar el área de input de nombre y avatar
+    if (!myPlayerName) { // Si el nombre no está establecido
+        nameInputArea.style.display = 'flex';
+        // Ocultar el resto del juego hasta que se elija un nombre
+        document.querySelectorAll('.game-container > *:not(#name-input-area):not(h1)').forEach(el => {
+            el.style.display = 'none';
+        });
+        gameMessagesEl.textContent = 'Por favor, ingresa tu nombre y un avatar para unirte al juego.';
+        gameMessagesEl.className = 'game-messages info';
+        document.querySelector('.chat-container').style.display = 'none';
+        document.querySelector('.ranking-container').style.display = 'none'; // NUEVO: Ocultar ranking
+        return; 
+    } else {
+        nameInputArea.style.display = 'none';
+        document.querySelector('.game-messages').style.display = 'block'; 
+        document.querySelector('.opponent-areas').style.display = 'flex'; 
+        document.querySelector('.game-center-area').style.display = 'flex';
+        document.querySelector('.player-area').style.display = 'block'; 
+        document.querySelector('.chat-container').style.display = 'flex';
+        document.querySelector('.ranking-container').style.display = 'block'; // NUEVO: Mostrar ranking
+    }
 
-    // Actualizar cartas boca arriba del jugador
-    // Cartas boca arriba interactivas solo si es mi turno, juego activo y mi mano está vacía
+
+    renderCards(myHand, playerHandEl, false, myPlayerId === currentPlayerTurnId && gameActive && myHand.length > 0);
     renderCards(myFaceUp, playerFaceUpEl, false, myPlayerId === currentPlayerTurnId && gameActive && myHand.length === 0 && myFaceUp.length > 0);
     
-    // Actualizar cartas boca abajo del jugador (visibles solo para el propietario en fase de setup)
     if (setupPhase) {
-        // En fase de setup, las cartas boca abajo se muestran y son interactivas para el intercambio
         renderCards(myFaceDown, playerFaceDownEl, false, true, true); 
     } else {
-        // Fuera de setup, son ocultas y solo interactivas si es mi turno, juego activo, y mano Y boca arriba están vacías
         const canPlayFaceDown = myPlayerId === currentPlayerTurnId && gameActive && myHand.length === 0 && myFaceUp.length === 0;
         renderCards(myFaceDown, playerFaceDownEl, true, canPlayFaceDown);
     }
     
-    // Actualizar mazo
     deckCountEl.textContent = `Mazo: ${deckCount}`;
     if (deckCount === 0) {
         deckEl.classList.add('disabled');
@@ -148,54 +191,50 @@ function updateUI() {
         deckEl.classList.remove('disabled');
     }
 
-    // Actualizar pila de descarte
     discardPileEl.innerHTML = '';
     if (discardTopCard) {
         const card = new Card(discardTopCard.suit, discardTopCard.rank);
-        const cardEl = card.createCardElement(false); // La carta superior del descarte siempre es visible
+        const cardEl = card.createCardElement(false); 
         discardPileEl.appendChild(cardEl);
     }
     discardCountEl.textContent = `Descarte: ${discardCount}`;
 
-    // Actualizar ID del jugador y turno
-    playerNameEl.textContent = myPlayerId ? `Tú (${myPlayerId.substring(0,4)})` : 'Desconocido';
+    // Actualizar nombre y avatar del jugador actual
+    playerNameEl.textContent = myPlayerName || 'Desconocido';
+    playerAvatarEl.src = myPlayerAvatarUrl || DEFAULT_CLIENT_AVATAR_URL;
+    playerAvatarEl.alt = `${myPlayerName}'s Avatar`;
 
-    // Manejo de botones según la fase del juego y el turno
     const isMyTurn = myPlayerId === currentPlayerTurnId && gameActive;
     
-    // Botón Iniciar Juego/Confirmar Intercambio
     if (setupPhase) {
         startGameBtn.style.display = 'block';
         if (selectedCardsForSwap.length === 2) {
             startGameBtn.textContent = 'Confirmar Intercambio';
             startGameBtn.disabled = false;
         } else {
-            startGameBtn.textContent = 'Iniciar Juego'; // Estado por defecto si no hay 2 seleccionadas
-            startGameBtn.disabled = true; // Deshabilitado hasta que se seleccionen 2 cartas o el juego se inicie por otro
+            startGameBtn.textContent = 'Iniciar Juego'; 
+            const playerInfo = publicPlayerStates[myPlayerId];
+            startGameBtn.disabled = !playerInfo || playerInfo.readyForPlay; 
         }
-        // Si ya confirmó su swap, el botón debe estar deshabilitado hasta que todos lo hagan.
-        // Esto se maneja en el listener 'swapSuccessful' y en 'startGame'.
     } else {
-        startGameBtn.style.display = 'none'; // Ocultar si el juego ya empezó
+        startGameBtn.style.display = 'none'; 
     }
 
-    // Botón Tomar Descarte
     takePileBtn.disabled = !isMyTurn || discardCount === 0;
     takePileBtn.style.display = gameActive ? 'block' : 'none';
 
-    // Botón Reiniciar Juego (decide cuándo mostrarlo)
-    restartGameBtn.disabled = !gameActive; // Habilitado si el juego está activo (para un reseteo forzado)
-    restartGameBtn.style.display = 'block'; // Siempre visible por ahora, puedes ocultarlo si quieres
+    restartGameBtn.disabled = !gameActive; 
+    restartGameBtn.style.display = 'block'; 
 
-    // Actualizar el estado visual de los oponentes
     updateOpponentAreas();
+    updateRankingUI(); // NUEVO: Llamar a la función de actualización del ranking
 }
 
 function updateOpponentAreas() {
-    opponentAreasEl.innerHTML = ''; // Limpiar área de oponentes
+    opponentAreasEl.innerHTML = ''; 
 
     for (const id in publicPlayerStates) {
-        if (id === myPlayerId) continue; // No renderizar al propio jugador como oponente
+        if (id === myPlayerId) continue; 
 
         const opponent = publicPlayerStates[id];
         const opponentArea = document.createElement('div');
@@ -204,7 +243,9 @@ function updateOpponentAreas() {
             opponentArea.classList.add('current-turn-indicator');
         }
 
+        // Mostrar el nombre del oponente y su avatar
         opponentArea.innerHTML = `
+            <img class="player-avatar" src="${opponent.avatarUrl || DEFAULT_CLIENT_AVATAR_URL}" alt="${opponent.name}'s Avatar">
             <h3>${opponent.name}</h3>
             <div class="opponent-cards-summary">
                 <div class="opponent-card-summary-item">Mano: <span class="card-count">${opponent.handCount}</span></div>
@@ -215,42 +256,95 @@ function updateOpponentAreas() {
         `;
         
         const opponentFaceUpCardsEl = opponentArea.querySelector('.opponent-face-up-cards');
-        renderCards(opponent.faceUp, opponentFaceUpCardsEl, false, false); // Las cartas boca arriba de oponentes no son interactivas para nosotros
+        renderCards(opponent.faceUp, opponentFaceUpCardsEl, false, false); 
 
         opponentAreasEl.appendChild(opponentArea);
     }
 }
+
+// --- Funciones para el Mini Chat ---
+function addChatMessage(senderName, message, senderId) {
+    const messageEl = document.createElement('div');
+    messageEl.classList.add('chat-message');
+    if (senderId === myPlayerId) {
+        messageEl.classList.add('self');
+    }
+    messageEl.innerHTML = `<strong>${senderName}:</strong> ${message}`;
+    chatMessagesEl.appendChild(messageEl);
+    // Auto-scroll al final del chat
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function sendChatMessage() {
+    const message = chatInput.value.trim();
+    if (message) {
+        socket.emit('chatMessage', message);
+        chatInput.value = ''; // Limpiar input
+        // Cerrar picker de emojis si estaba abierto
+        emojiPicker.classList.add('hidden');
+    }
+}
+
+function populateEmojiPicker() {
+    emojiPicker.innerHTML = '';
+    EMOJIS.forEach(emoji => {
+        const button = document.createElement('button');
+        button.textContent = emoji;
+        button.addEventListener('click', () => {
+            chatInput.value += emoji; // Añadir emoji al input
+            chatInput.focus(); // Mantener el foco
+        });
+        emojiPicker.appendChild(button);
+    });
+}
+// --- FIN Funciones para el Mini Chat ---
+
+// --- NUEVO: Funciones de Ranking del Cliente ---
+function updateRankingUI() {
+    rankingListEl.innerHTML = ''; // Limpiar la lista existente
+
+    if (currentRanking.length === 0) {
+        const listItem = document.createElement('li');
+        listItem.textContent = 'Aún no hay puntos registrados.';
+        rankingListEl.appendChild(listItem);
+        return;
+    }
+
+    currentRanking.forEach((player, index) => {
+        const listItem = document.createElement('li');
+        listItem.classList.add('ranking-item');
+        listItem.innerHTML = `
+            <span>${index + 1}. <span class="player-name">${player.name}</span></span>
+            <span class="player-score">${player.score} puntos</span>
+        `;
+        rankingListEl.appendChild(listItem);
+    });
+}
+// --- FIN NUEVO ---
 
 
 // --- Event Handlers ---
 
 function handleCardClick(event, cardId, sourceAreaId) {
     if (setupPhase) {
-        // Lógica de selección de cartas para intercambio en fase de setup
         const cardEl = event.currentTarget;
 
-        // Determinar de qué área proviene la carta clicada
         let cardSourceArrayRef;
         if (sourceAreaId === playerHandEl.id) cardSourceArrayRef = myHand;
         else if (sourceAreaId === playerFaceUpEl.id) cardSourceArrayRef = myFaceUp;
         else if (sourceAreaId === playerFaceDownEl.id) cardSourceArrayRef = myFaceDown;
-        else return; // Área no reconocida
+        else return; 
 
-        // Encontrar la carta real en el array
         const clickedCard = cardSourceArrayRef.find(c => c.id === cardId);
         if (!clickedCard) return;
 
-        // Comprobar si la carta ya está en la selección
         const isAlreadySelected = selectedCardsForSwap.includes(cardId);
 
         if (isAlreadySelected) {
-            // Si ya estaba seleccionada, la deseleccionamos
             selectedCardsForSwap = selectedCardsForSwap.filter(id => id !== cardId);
             cardEl.classList.remove('selected-for-swap');
         } else {
-            // Si no estaba seleccionada, intentamos añadirla
             if (selectedCardsForSwap.length < 2) {
-                // Verificar que no se seleccione otra carta de la misma área si ya hay una seleccionada
                 let canSelect = true;
                 if (selectedCardsForSwap.length === 1) {
                     const firstSelectedCardId = selectedCardsForSwap[0];
@@ -273,14 +367,12 @@ function handleCardClick(event, cardId, sourceAreaId) {
                 updateGameMessage('Ya has seleccionado dos cartas para intercambiar. Haz clic en "Confirmar Intercambio".', 'warning');
             }
         }
-        updateUI(); // Refrescar UI para actualizar el estado del botón
+        updateUI(); 
         
     } else if (myPlayerId === currentPlayerTurnId && gameActive) {
-        // Lógica para jugar una carta durante el turno normal
         const cardEl = event.currentTarget;
         const cardIdToPlay = cardEl.dataset.cardId;
         
-        // Emitir el evento al servidor
         socket.emit('playCardRequest', { cardId: cardIdToPlay });
     } else {
         updateGameMessage('No es tu turno para jugar.', 'warning');
@@ -288,29 +380,82 @@ function handleCardClick(event, cardId, sourceAreaId) {
 }
 
 
+// Evento para guardar el nombre de usuario y avatar
+saveUsernameBtn.addEventListener('click', () => {
+    const username = usernameInput.value.trim();
+    const avatarUrl = avatarUrlInput.value.trim();
+
+    if (username) {
+        // Enviar tanto el nombre como el avatar al servidor
+        socket.emit('setPlayerInfo', { playerName: username, avatarUrl: avatarUrl });
+        myPlayerName = username; // Actualizar el nombre localmente
+        myPlayerAvatarUrl = avatarUrl || DEFAULT_CLIENT_AVATAR_URL; // Actualizar el avatar localmente (si es vacío, usar el default del cliente)
+        updateGameMessage(`¡Hola, ${myPlayerName}! Esperando a otros jugadores...`, 'info');
+        updateUI(); 
+    } else {
+        updateGameMessage('Por favor, ingresa un nombre válido.', 'warning');
+    }
+});
+
+// Permitir presionar Enter para guardar el nombre y avatar
+usernameInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        saveUsernameBtn.click();
+    }
+});
+avatarUrlInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        saveUsernameBtn.click();
+    }
+});
+
+// Eventos del Chat
+sendChatBtn.addEventListener('click', sendChatMessage);
+
+chatInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        sendChatMessage();
+    }
+});
+
+emojiBtn.addEventListener('click', () => {
+    emojiPicker.classList.toggle('hidden');
+    if (!emojiPicker.classList.contains('hidden')) {
+        populateEmojiPicker(); // Rellenar los emojis cada vez que se abre
+    }
+});
+
+// Cerrar el selector de emojis si se hace clic fuera
+document.addEventListener('click', (event) => {
+    if (!emojiPicker.contains(event.target) && !emojiBtn.contains(event.target)) {
+        emojiPicker.classList.add('hidden');
+    }
+});
+
+
 startGameBtn.addEventListener('click', () => {
     if (setupPhase) {
         if (selectedCardsForSwap.length === 2) {
-            // Envía la solicitud de swap al servidor
             socket.emit('swapCardsRequest', {
-                // Asegúrate de enviar solo los IDs de las cartas para el swap
                 handCardId: myHand.some(card => selectedCardsForSwap.includes(card.id)) ? selectedCardsForSwap.find(id => myHand.some(card => card.id === id)) : null,
                 faceUpCardId: myFaceUp.some(card => selectedCardsForSwap.includes(card.id)) ? selectedCardsForSwap.find(id => myFaceUp.some(card => card.id === id)) : null,
                 faceDownCardId: myFaceDown.some(card => selectedCardsForSwap.includes(card.id)) ? selectedCardsForSwap.find(id => myFaceDown.some(card => card.id === id)) : null
             });
-            selectedCardsForSwap = []; // Limpiar selección inmediatamente
+            selectedCardsForSwap = []; 
             updateGameMessage('Enviando solicitud de intercambio. Esperando a otros jugadores...', 'info');
             startGameBtn.textContent = 'Esperando otros jugadores...';
-            startGameBtn.disabled = true; // Deshabilitar mientras espera
-            updateUI(); // Refrescar UI para mostrar botón deshabilitado
+            startGameBtn.disabled = true; 
+            updateUI(); 
         } else {
-            updateGameMessage('Selecciona exactamente dos cartas para intercambiar.', 'warning');
+            const playerInfo = publicPlayerStates[myPlayerId];
+            if (playerInfo && playerInfo.readyForPlay) {
+                socket.emit('gameStartRequest');
+            } else {
+                updateGameMessage('Selecciona exactamente dos cartas para intercambiar, o espera a que otros jugadores terminen el setup.', 'warning');
+            }
         }
     } else {
-        // Si no estamos en fase de setup, este botón debería iniciar el juego (para el host)
-        // O debería estar oculto/deshabilitado si el juego ya está activo.
-        // La lógica ya maneja que el juego solo inicie si hay al menos 2 jugadores y todos están readyForPlay.
-        socket.emit('gameStartRequest', { playerName: playerNameEl.textContent });
+        socket.emit('gameStartRequest');
     }
 });
 
@@ -323,10 +468,7 @@ takePileBtn.addEventListener('click', () => {
 });
 
 restartGameBtn.addEventListener('click', () => {
-    // TODO: Implementar lógica de reinicio completo en el servidor
-    // Por ahora, solo es un marcador de posición
     updateGameMessage('Funcionalidad de reiniciar juego no implementada completamente en el servidor.', 'info');
-    // socket.emit('restartGameRequest'); // Puedes emitir un evento para que el servidor lo maneje
 });
 
 
@@ -334,29 +476,40 @@ restartGameBtn.addEventListener('click', () => {
 
 socket.on('connect', () => {
     myPlayerId = socket.id;
-    playerNameEl.textContent = `Tú (${myPlayerId.substring(0,4)})`;
-    updateGameMessage('Conectado al servidor. Esperando jugadores...');
-    updateUI(); // Renderiza el estado inicial
+    updateUI(); 
 });
 
 socket.on('message', (message, type = 'info') => {
     updateGameMessage(message, type);
 });
 
+// Escuchar mensajes de chat
+socket.on('chatMessage', (data) => {
+    addChatMessage(data.senderName, data.text, data.senderId);
+});
+
+
 socket.on('currentGameState', (state) => {
     // console.log('[CLIENT] Received current game state:', state);
+    if (state.playerName) {
+        myPlayerName = state.playerName; 
+    }
+    if (state.playerAvatarUrl) {
+        myPlayerAvatarUrl = state.playerAvatarUrl;
+    }
+
     myHand = state.playerHand;
     myFaceUp = state.playerFaceUp;
-    myFaceDown = state.playerFaceDown; // Ahora recibimos las cartas reales
+    myFaceDown = state.faceDown; 
     deckCount = state.deckCount;
     discardTopCard = state.discardTopCard;
     discardCount = state.discardCount;
     currentPlayerTurnId = state.currentPlayerTurnId;
     gameActive = state.gameActive;
     setupPhase = state.setupPhase;
-    publicPlayerStates = state.publicPlayerStates; // Asegurar que publicPlayerStates esté actualizado para el renderizado de oponentes
+    publicPlayerStates = state.publicPlayerStates; 
+    currentRanking = state.ranking; // NUEVO: Actualizar el ranking
 
-    // Si la fase de setup termina, asegurar que los elementos de swap se limpian
     if (!setupPhase) {
         selectedCardsForSwap = [];
         const selectedEls = document.querySelectorAll('.selected-for-swap');
@@ -366,49 +519,11 @@ socket.on('currentGameState', (state) => {
     updateUI();
 });
 
-// Este evento es para datos públicos de todos los jugadores que todos pueden ver
-let publicPlayerStates = {}; // Definir aquí para que sea accesible globalmente
 socket.on('publicGameState', (state) => {
     // console.log('[CLIENT] Received public game state:', state);
-    // Actualizar solo los datos públicos
     deckCount = state.deckCount;
     discardTopCard = state.discardTopCard;
     discardCount = state.discardCount;
     currentPlayerTurnId = state.currentPlayerTurnId;
     gameActive = state.gameActive;
-    // La 'setupPhase' se maneja desde 'currentGameState' que es específico del cliente.
-
-    // Actualizar el objeto publicPlayerStates completo desde el servidor
-    // Esto es crucial para renderizar a los oponentes.
-    publicPlayerStates = state.publicPlayerStates; 
-
-    updateUI();
-});
-
-socket.on('swapSuccessful', () => {
-    updateGameMessage('Intercambio realizado con éxito. Esperando a otros jugadores.', 'success');
-    // El botón se actualizará a "Esperando otros jugadores..." y deshabilitado via updateUI
-    // El texto del botón ya se gestiona en updateUI basado en setupPhase y selectedCardsForSwap
-});
-
-socket.on('disconnect', () => {
-    updateGameMessage('Desconectado del servidor.', 'error');
-    // Deshabilitar todo y limpiar el UI
-    gameActive = false;
-    myPlayerId = null;
-    myHand = [];
-    myFaceUp = [];
-    myFaceDown = [];
-    discardTopCard = null;
-    deckCount = 0;
-    discardCount = 0;
-    currentPlayerTurnId = null;
-    setupPhase = true;
-    selectedCardsForSwap = [];
-    publicPlayerStates = {}; // Limpiar también el estado de los oponentes
-    updateUI();
-});
-
-// Inicializar la UI al cargar
-updateUI();
-                                
+    publicPlayerStates = sta
