@@ -1,2 +1,2 @@
-# Et-ope-
+# Etyope
 Juego de cartas 
