@@ -1,0 +1,22 @@
+{
+  "name": "mi-juego-fulgor",
+  "version": "1.0.0",
+  "description": "Juego de cartas Fulgor con Socket.IO",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "juego",
+    "cartas",
+    "socket.io",
+    "express"
+  ],
+  "author": "Tu Nombre/Organización",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
