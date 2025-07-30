@@ -5,81 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juego de Cartas Fulgor</title>
     <link rel="stylesheet" href="style.css">
-</head>
+    </head>
 <body>
-
-    <div id="name-input-area" class="screen active">
-        <h1>¡Bienvenido a Fulgor!</h1>
-        <p>Por favor, ingresa tu nombre y una URL de avatar para empezar a jugar.</p>
-        <div class="input-group">
-            <label for="usernameInput">Tu Nombre:</label>
-            <input type="text" id="usernameInput" placeholder="Ej: JugadorPro123" maxlength="15">
-        </div>
-        <div class="input-group">
-            <label for="avatarUrlInput">URL de tu Avatar (opcional):</label>
-            <input type="url" id="avatarUrlInput" placeholder="Ej: https://ejemplo.com/mi-avatar.png">
-        </div>
-        <button id="saveUsernameBtn">Guardar Nombre y Avatar</button>
-        <p class="game-messages" id="game-messages-initial">Ingresa tus datos para unirte.</p>
-    </div>
-
-    <div id="game-container" class="screen hidden">
+    <div id="game-container">
         <h1>Juego de Cartas Fulgor</h1>
-        <p class="game-messages" id="game-messages">Esperando jugadores...</p>
+        <div id="messages"></div>
 
-        <div class="game-layout">
-            <div id="opponent-areas" class="opponent-areas">
-                </div>
-
-            <div class="game-center-area">
-                <div class="deck-area">
-                    <div id="deck" class="card-pile"></div>
-                    <span id="deck-count" class="pile-count">Mazo: 0</span>
-                </div>
-                <div class="discard-area">
-                    <div id="discard-pile" class="card-pile"></div>
-                    <span id="discard-count" class="pile-count">Descarte: 0</span>
-                </div>
-                <div class="game-actions">
-                    <button id="startGameBtn">Iniciar Juego</button>
-                    <button id="takePileBtn">Tomar Descarte</button>
-                    <button id="restartGameBtn">Reiniciar Juego</button>
-                </div>
-            </div>
-
-            <div class="player-area">
-                <div class="player-info">
-                    <img id="player-avatar" class="player-avatar" src="https://via.placeholder.com/50?text=Yo" alt="Tu Avatar">
-                    <h2 id="player-name">Tu Nombre</h2>
-                </div>
-                <h3>Tu Mano:</h3>
-                <div id="player1-hand" class="player-hand card-area"></div>
-                <h3>Cartas Boca Arriba:</h3>
-                <div id="player1-face-up" class="player-face-up card-area"></div>
-                <h3>Cartas Boca Abajo:</h3>
-                <div id="player1-face-down" class="player-face-down card-area"></div>
-            </div>
+        <div id="player-info-setup">
+            <input type="text" id="player-name-input" placeholder="Tu nombre">
+            <input type="text" id="avatar-url-input" placeholder="URL de tu avatar (opcional)">
+            <button id="join-game-button">Unirse al Juego</button>
         </div>
 
-        <div class="chat-container">
-            <h3>Chat del Juego</h3>
-            <div id="chat-messages" class="chat-messages"></div>
-            <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
-                <button id="emojiBtn">😀</button>
-                <div id="emojiPicker" class="emoji-picker hidden"></div>
-                <button id="sendChatBtn">Enviar</button>
+        <div id="game-area" style="display: none;">
+            <div id="other-players"></div>
+            <div id="game-table">
+                <div id="deck-area">Mazo (<span id="deck-count">0</span>)</div>
+                <div id="discard-pile">Descarte: <span id="discard-top-card"></span></div>
+                <div id="current-player-turn">Turno: <span id="turn-name"></span></div>
             </div>
-        </div>
-
-        <div class="ranking-container">
-            <h3>Ranking de Jugadores</h3>
-            <ul id="ranking-list" class="ranking-list">
-                </ul>
+            <div id="my-cards">
+                <h2>Mis Cartas</h2>
+                <div id="my-hand"></div>
+                <div id="my-face-up"></div>
+                <div id="my-face-down"></div>
+                <button id="swap-cards-button">Listo para Intercambiar</button>
+                <button id="start-game-button">Iniciar Juego</button>
+                <button id="take-pile-button">Tomar Descarte</button>
+            </div>
+            <div id="chat-area">
+                <div id="chat-messages"></div>
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
+                <button id="send-chat-button">Enviar</button>
+            </div>
+            <div id="ranking-area">
+                <h3>Clasificación</h3>
+                <ul id="player-ranking-list"></ul>
+            </div>
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
