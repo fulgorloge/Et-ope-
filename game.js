@@ -218,3 +218,4 @@ socket.on('connect_error', (err) => {
     console.error('Error de conexión:', err);
     addGameMessage(`Error de conexión al servidor: ${err.message}`, 'error');
 });
+
