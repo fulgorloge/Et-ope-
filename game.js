@@ -1,7 +1,7 @@
 // public/game.js
 
 // *** ¡IMPORTANTE: REEMPLAZA "https://nombre-de-tu-servicio.onrender.com" con la URL REAL de tu backend en Render! ***
-const backendUrl = 'https://nombre-de-tu-servicio.onrender.com'; // <--- ¡TU URL DE RENDER AQUÍ!
+const backendUrl = 'https://et-ope.onrender.com'; // <--- ¡TU URL DE RENDER AQUÍ!
 
 // Asegúrate de que la librería cliente de Socket.IO esté cargada en tu HTML (ej: <script src="/socket.io/socket.io.js"></script>)
 // ANTES de que se cargue este archivo game.js.
