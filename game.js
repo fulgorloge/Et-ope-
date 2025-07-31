@@ -2,6 +2,7 @@
 
 // *** ¡IMPORTANTE: REEMPLAZA "https://nombre-de-tu-servicio.onrender.com" con la URL REAL de tu backend en Render! ***
 const backendUrl = 'https://nombre-de-tu-servicio.onrender.com'; // <--- ¡TU URL DE RENDER AQUÍ!
+var io = ““;
 const socket = io(backendUrl);
 
 // --- Elementos del DOM ---
