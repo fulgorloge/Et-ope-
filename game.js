@@ -2,7 +2,10 @@
 
 // *** ¡IMPORTANTE: REEMPLAZA "https://nombre-de-tu-servicio.onrender.com" con la URL REAL de tu backend en Render! ***
 const backendUrl = 'https://nombre-de-tu-servicio.onrender.com'; // <--- ¡TU URL DE RENDER AQUÍ!
-var io = ““;
+
+// Asegúrate de que la librería cliente de Socket.IO esté cargada en tu HTML (ej: <script src="/socket.io/socket.io.js"></script>)
+// ANTES de que se cargue este archivo game.js.
+// Por eso, la declaración 'var io = ""' que tenías era incorrecta y causaba el error.
 const socket = io(backendUrl);
 
 // --- Elementos del DOM ---
@@ -63,7 +66,8 @@ function renderCard(card, isClickable = false) {
         cardDiv.textContent = `${card.rank} de ${card.suit}`; // Simplificado para mostrar
         if (isClickable) {
             cardDiv.classList.add('clickable');
-            cardDiv.onclick = () => playCard(card.id); // Asumiendo que las cartas tienen un ID único
+            // Asegúrate de que card.id exista en tus objetos de carta para que esto funcione
+            cardDiv.onclick = () => playCard(card.id);
         }
     } else {
         cardDiv.textContent = 'Carta'; // Para cartas boca abajo o desconocidas
@@ -110,7 +114,7 @@ function updateGameDisplay() {
     myFaceUp.forEach(card => myFaceUpDiv.appendChild(renderCard(card, true)));
 
     myFaceDownDiv.innerHTML = '';
-    myFaceDown.forEach(card => myFaceDownDiv.appendChild(renderCard(card, true)));
+    myFaceDown.forEach(card => myFaceDownDiv.appendChild(renderCard(card, false))); // Cartas boca abajo no son clickeables
 
     // Actualizar turno
     if (currentGameState.currentPlayerTurnId && currentGameState.players[currentGameState.currentPlayerTurnId]) {
@@ -120,10 +124,17 @@ function updateGameDisplay() {
     }
 
     // Actualizar fase de juego y botones
+    // Se asume que 'setupPhase' es una propiedad booleana del estado del juego
     if (currentGameState.setupPhase) {
         swapCardsButton.style.display = 'block';
         startGameButton.style.display = 'block';
         takePileButton.style.display = 'none';
+        // Habilitar o deshabilitar botón de inicio si hay suficientes jugadores
+        if (currentGameState.players && Object.keys(currentGameState.players).length >= 2 && currentGameState.allPlayersReadyForPlay) {
+             startGameButton.disabled = false;
+        } else {
+             startGameButton.disabled = true;
+        }
     } else {
         swapCardsButton.style.display = 'none';
         startGameButton.style.display = 'none';
@@ -132,11 +143,13 @@ function updateGameDisplay() {
 
     // Actualizar clasificación
     playerRankingList.innerHTML = '';
-    currentGameState.ranking.forEach(player => {
-        const li = document.createElement('li');
-        li.textContent = `${player.name}: ${player.score}`;
-        playerRankingList.appendChild(li);
-    });
+    if (currentGameState.ranking) {
+        currentGameState.ranking.forEach(player => {
+            const li = document.createElement('li');
+            li.textContent = `${player.name}: ${player.score}`;
+            playerRankingList.appendChild(li);
+        });
+    }
 }
 
 // --- Eventos del Cliente ---
@@ -154,14 +167,18 @@ joinGameButton.addEventListener('click', () => {
 });
 
 swapCardsButton.addEventListener('click', () => {
-    // Lógica para seleccionar y enviar cartas a intercambiar
-    // Por ahora, solo indicamos que el jugador está listo
-    socket.emit('swapCardsRequest', { /* datos de intercambio si los hubiera */ });
-    swapCardsButton.disabled = true; // Desactivar una vez enviado
+    // NOTA: Aquí necesitarías la lógica para permitir al jugador seleccionar
+    // qué cartas de su mano y de su pila boca arriba quiere intercambiar.
+    // Por ahora, solo se enviaría una señal general o un arreglo de IDs si ya las seleccionó.
+    // Ejemplo: socket.emit('swapCardsRequest', { selectedHandCardId: '...', selectedFaceUpCardId: '...' });
+    addGameMessage('Has indicado tu intención de intercambiar cartas. Esperando la selección...', 'info');
+    socket.emit('playerReadyForSwap'); // Podría ser una señal para que el servidor inicie la fase de intercambio
+    swapCardsButton.disabled = true; // Desactivar una vez enviado hasta que el servidor lo re-habilite o termine la fase
 });
 
 startGameButton.addEventListener('click', () => {
     socket.emit('gameStartRequest');
+    startGameButton.disabled = true; // Deshabilitar para evitar múltiples clics
 });
 
 sendChatButton.addEventListener('click', () => {
@@ -172,11 +189,19 @@ sendChatButton.addEventListener('click', () => {
     }
 });
 
+// Permite enviar mensaje de chat al presionar Enter
+chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendChatButton.click();
+    }
+});
+
 takePileButton.addEventListener('click', () => {
     socket.emit('takePileRequest');
 });
 
 function playCard(cardId) {
+    // Se asume que esta función se llama cuando una carta en la mano o boca arriba es clickeada
     socket.emit('playCardRequest', { cardId });
 }
 
@@ -200,14 +225,14 @@ socket.on('chatMessage', (data) => {
 });
 
 socket.on('gameState', (gameState) => {
-    // console.log('Estado del juego recibido:', gameState);
+    // console.log('Estado del juego recibido:', gameState); // Descomenta para depuración
     myPlayerId = gameState.myPlayerId; // Asegurarse de que el cliente conoce su ID
     currentGameState = gameState;
     updateGameDisplay();
 });
 
 socket.on('playerStateUpdate', (data) => {
-    // console.log('Actualización de estado de jugador recibida:', data);
+    // console.log('Actualización de estado de jugador recibida:', data); // Descomenta para depuración
     myHand = data.myHand || [];
     myFaceUp = data.myFaceUp || [];
     myFaceDown = data.myFaceDown || [];
@@ -220,3 +245,12 @@ socket.on('connect_error', (err) => {
     addGameMessage(`Error de conexión al servidor: ${err.message}`, 'error');
 });
 
+// Evento para habilitar el botón de intercambio si es necesario (ej. después de un error o nueva ronda)
+socket.on('enableSwapButton', () => {
+    swapCardsButton.disabled = false;
+});
+
+// Evento para habilitar el botón de inicio de juego (si el servidor indica que hay suficientes jugadores y están listos)
+socket.on('enableStartGameButton', () => {
+    startGameButton.disabled = false;
+});
