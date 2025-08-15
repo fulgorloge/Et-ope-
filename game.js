@@ -1,12 +1,12 @@
 // public/game.js
 
 // *** ¡IMPORTANTE: REEMPLAZA "https://nombre-de-tu-servicio.onrender.com" con la URL REAL de tu backend en Render! ***
-const backendUrl = "production-us-east4-eqdc4a.railway-registry.com"; // <--- ¡TU URL DE RENDER AQUÍ!
+const backendUrl = "https://app.netlify.com/projects/etiop/configuration/general"; // <--- ¡TU URL DE RENDER AQUÍ!
 
 // Asegúrate de que la librería cliente de Socket.IO esté cargada en tu HTML (ej: <script src="/socket.io/socket.io.js"></script>)
 // ANTES de que se cargue este archivo game.js.
 // Por eso, la declaración 'var io = ""' que tenías era incorrecta y causaba el error.
-const socket = io(production-us-east4-eqdc4a.railway-registry.com);
+const socket = io(https://app.netlify.com/projects/etiop/configuration/general);
 
 // --- Elementos del DOM ---
 const messagesDiv = document.getElementById('messages');
