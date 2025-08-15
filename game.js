@@ -6,7 +6,7 @@ const backendUrl = "production-us-east4-eqdc4a.railway-registry.com"; // <--- ¡
 // Asegúrate de que la librería cliente de Socket.IO esté cargada en tu HTML (ej: <script src="/socket.io/socket.io.js"></script>)
 // ANTES de que se cargue este archivo game.js.
 // Por eso, la declaración 'var io = ""' que tenías era incorrecta y causaba el error.
-const socket = io(backendUrl);
+const socket = io(production-us-east4-eqdc4a.railway-registry.com);
 
 // --- Elementos del DOM ---
 const messagesDiv = document.getElementById('messages');
